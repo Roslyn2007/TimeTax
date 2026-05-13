@@ -7,7 +7,6 @@ namespace TimeTax.Model.Interfaces
         Vector2 Position { get; }
         float Width { get; }
         float Height { get; }
-        // Прямоугольник коллизии
         (float left, float right, float top, float bottom) GetBounds();
     }
 }

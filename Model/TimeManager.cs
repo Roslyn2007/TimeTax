@@ -8,7 +8,7 @@ namespace TimeTax.Model
         public float StartTime { get; }
 
         public event Action<float> TimeChanged;
-        public event Action<string> ScreenEffectChanged; // "normal", "orange", "red", "critical"
+        public event Action<string> ScreenEffectChanged;
         public event Action TimeRanOut;
 
         public TimeManager(float startTime)

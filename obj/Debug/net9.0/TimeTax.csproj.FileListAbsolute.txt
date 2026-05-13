@@ -32,3 +32,4 @@ C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\obj\Debug\net9.0\TimeTax.pdb
 C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\obj\Debug\net9.0\TimeTax.genruntimeconfig.cache
 C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\obj\Debug\net9.0\ref\TimeTax.dll
 C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\obj\Debug\net9.0\TimeTax.sourcelink.json
+C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\bin\Debug\net9.0\Content\Font.xnb

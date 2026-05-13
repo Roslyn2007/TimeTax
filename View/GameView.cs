@@ -9,6 +9,7 @@ namespace TimeTax.View
     {
         private SpriteBatch spriteBatch;
         private Texture2D pixel;
+        private SpriteFont font;
         private UIRenderer ui;
 
         private Microsoft.Xna.Framework.Vector2 playerPosition;
@@ -17,33 +18,41 @@ namespace TimeTax.View
         private int requiredCoins;
         private string screenEffect = "normal";
         private bool doorOpen;
-        private Microsoft.Xna.Framework.Vector2 doorPos;
+        private int currentScore;
+        private string levelName = "";
+        private int levelNumber = 1;
 
-        private GameModel model; 
+        private GameModel model;
 
-        public GameView(GraphicsDevice graphicsDevice, SpriteBatch sharedSpriteBatch, GameModel model)
+        public GameView(GraphicsDevice graphicsDevice, SpriteBatch sharedSpriteBatch, GameModel model, Texture2D sharedPixel, SpriteFont font)
         {
             this.spriteBatch = sharedSpriteBatch;
             this.model = model;
-            pixel = new Texture2D(graphicsDevice, 1, 1);
-            pixel.SetData(new[] { Color.White });
-            ui = new UIRenderer(sharedSpriteBatch, pixel);
+            this.pixel = sharedPixel;
+            this.font = font;
+            ui = new UIRenderer(sharedSpriteBatch, pixel, font);
 
             model.PlayerMoved += pos => playerPosition = new Microsoft.Xna.Framework.Vector2(pos.X, pos.Y);
             model.Time.TimeChanged += t => currentTime = t;
             model.CoinsChanged += c => collectedCoins = c;
             model.Time.ScreenEffectChanged += eff => screenEffect = eff;
-            model.Time.TimeRanOut += () => { /* учтём в отрисовке */ };
-            model.LevelFinished += () => doorOpen = true;
+            model.ScoreChanged += s => currentScore = s;
+            model.LevelStarted += num =>
+            {
+                levelNumber = num;
+                levelName = model.CurrentLevel?.Name ?? "";
+                doorOpen = false;
+            };
+            model.Time.TimeRanOut += () => { };
+            model.LevelFinished += () => { };
 
             playerPosition = new Microsoft.Xna.Framework.Vector2(model.Player.Position.X, model.Player.Position.Y);
             currentTime = model.Time.CurrentTime;
             collectedCoins = model.CollectedCoins;
             requiredCoins = model.TotalCoinsRequired;
             doorOpen = model.CurrentLevel.Door?.IsOpen ?? false;
-            doorPos = model.CurrentLevel.Door != null
-                ? new Microsoft.Xna.Framework.Vector2(model.CurrentLevel.Door.Position.X, model.CurrentLevel.Door.Position.Y)
-                : Microsoft.Xna.Framework.Vector2.Zero;
+            levelName = model.CurrentLevel?.Name ?? "";
+            levelNumber = model.CurrentLevelNumber;
         }
 
         public void Draw(GameTime gameTime)
@@ -72,10 +81,29 @@ namespace TimeTax.View
                     new Rectangle((int)platform.Position.X, (int)platform.Position.Y, (int)platform.Width, (int)platform.Height),
                     Color.Gray);
 
+            foreach (var conveyor in model.CurrentLevel.Conveyors)
+            {
+                Color conveyorColor = conveyor.Direction == TimeTax.Model.Entities.ConveyorDirection.Right ? Color.Cyan : Color.LightBlue;
+                spriteBatch.Draw(pixel,
+                    new Rectangle((int)conveyor.Position.X, (int)conveyor.Position.Y, (int)conveyor.Width, (int)conveyor.Height),
+                    conveyorColor);
+                int arrowX = conveyor.Direction == TimeTax.Model.Entities.ConveyorDirection.Right ? (int)(conveyor.Position.X + conveyor.Width - 10) : (int)conveyor.Position.X;
+                spriteBatch.Draw(pixel, new Rectangle(arrowX, (int)conveyor.Position.Y - 3, 10, 4), Color.White);
+            }
+
+            foreach (var portal in model.CurrentLevel.Portals)
+            {
+                Color portalColor = Color.Purple;
+                float portalPulse = (float)Math.Sin(gameTime.TotalGameTime.TotalSeconds * 4) * 0.3f + 0.7f;
+                spriteBatch.Draw(pixel,
+                    new Rectangle((int)portal.Position.X, (int)portal.Position.Y, (int)portal.Width, (int)portal.Height),
+                    new Color((int)(portalColor.R * portalPulse), (int)(portalColor.G * portalPulse), (int)(portalColor.B * portalPulse)));
+            }
+
             foreach (var coin in model.CurrentLevel.Coins)
             {
                 if (coin.Collected) continue;
-                Color coinColor = coin.Type == Model.Entities.CoinType.Gold ? Color.Gold : Color.Yellow;
+                Color coinColor = coin.Type == TimeTax.Model.Entities.CoinType.Gold ? Color.Gold : Color.Yellow;
                 spriteBatch.Draw(pixel,
                     new Rectangle((int)coin.Position.X, (int)coin.Position.Y, (int)coin.Width, (int)coin.Height),
                     coinColor);
@@ -102,7 +130,8 @@ namespace TimeTax.View
 
             if (model.CurrentLevel.Door != null)
             {
-                Color doorColor = model.CurrentLevel.Door.IsOpen ? Color.Green : Color.Red;
+                doorOpen = model.CurrentLevel.Door.IsOpen;
+                Color doorColor = doorOpen ? Color.Green : Color.Red;
                 spriteBatch.Draw(pixel,
                     new Rectangle((int)model.CurrentLevel.Door.Position.X, (int)model.CurrentLevel.Door.Position.Y,
                         (int)model.CurrentLevel.Door.Width, (int)model.CurrentLevel.Door.Height),
@@ -114,7 +143,7 @@ namespace TimeTax.View
                     (int)model.Player.Width, (int)model.Player.Height),
                 Color.LimeGreen);
 
-            ui.Draw(currentTime, collectedCoins, requiredCoins, model.GameOver, model.LevelCompleted);
+            ui.Draw(currentTime, collectedCoins, requiredCoins, currentScore, model.GameOver, model.LevelCompleted, model.GameWon, model.IsPaused, levelName, levelNumber);
 
             spriteBatch.End();
         }

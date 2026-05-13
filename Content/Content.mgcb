@@ -1,8 +1,7 @@
-
 #----------------------------- Global Properties ----------------------------#
 
-/outputDir:bin/$(Platform)
-/intermediateDir:obj/$(Platform)
+/outputDir:bin/DesktopGL/Content
+/intermediateDir:obj/DesktopGL/Content
 /platform:DesktopGL
 /config:
 /profile:Reach
@@ -13,3 +12,9 @@
 
 #---------------------------------- Content ---------------------------------#
 
+#begin Font.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:Font.spritefont

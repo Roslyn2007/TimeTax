@@ -15,35 +15,79 @@ namespace TimeTax.Model
         public int TotalCoinsRequired => CurrentLevel?.RequiredCoins ?? 0;
         public bool LevelCompleted { get; private set; }
         public bool GameOver { get; private set; }
+        public bool GameWon { get; private set; }
+        public int CurrentLevelNumber { get; private set; }
+        public int TotalLevels => 5;
+        public int Score { get; private set; }
+        public bool IsPaused { get; set; }
 
         public event Action<int> CoinsChanged;
         public event Action LevelFinished;
         public event Action GameLost;
-        public event Action<string> PlaySound; // "coin", "damage", "heartbeat"
+        public event Action<string> PlaySound;
         public event Action<Vector2> PlayerMoved;
+        public event Action<int> LevelStarted;
+        public event Action GameWonEvent;
+        public event Action<int> ScoreChanged;
 
-        private float penaltyCooldown = 0f; // чтобы не снимать время каждый кадр при касании
+        private float penaltyCooldown = 0f;
+        private float portalCooldown = 0f;
 
-        public void StartNewLevel()
+        public void StartNewGame()
         {
+            CurrentLevelNumber = 1;
+            Score = 0;
+            GameWon = false;
+            StartLevel(CurrentLevelNumber);
+        }
+
+        public void StartLevel(int levelNumber)
+        {
+            CurrentLevelNumber = levelNumber;
             CurrentLevel = new Level();
-            CurrentLevel.LoadTestLevel();
+            CurrentLevel.LoadLevel(levelNumber);
             Time = new TimeManager(CurrentLevel.StartTime);
             Player = new Player { Position = CurrentLevel.PlayerSpawn };
 
             CollectedCoins = 0;
             LevelCompleted = false;
             GameOver = false;
+            IsPaused = false;
+            penaltyCooldown = 0f;
+            portalCooldown = 0f;
 
             CoinsChanged?.Invoke(CollectedCoins);
             PlayerMoved?.Invoke(Player.Position);
+            LevelStarted?.Invoke(levelNumber);
+            ScoreChanged?.Invoke(Score);
+        }
+
+        public void NextLevel()
+        {
+            int timeBonus = (int)(Time.CurrentTime * 10);
+            float multiplier = Time.CurrentTime > 30 ? 3f : Time.CurrentTime > 10 ? 2f : 1f;
+            int levelScore = (int)((CollectedCoins * 100 + timeBonus) * multiplier);
+            Score += levelScore;
+            ScoreChanged?.Invoke(Score);
+
+            if (CurrentLevelNumber >= TotalLevels)
+            {
+                GameWon = true;
+                GameWonEvent?.Invoke();
+            }
+            else
+            {
+                StartLevel(CurrentLevelNumber + 1);
+            }
         }
 
         public void Update(float deltaTime)
         {
-            if (LevelCompleted || GameOver) return;
+            if (LevelCompleted || GameOver || GameWon || IsPaused) return;
 
-            // Обновление времени
+            foreach (var enemy in CurrentLevel.Enemies)
+                enemy.Update(deltaTime);
+
             Time.Update(deltaTime);
             if (Time.CurrentTime <= 0)
             {
@@ -52,34 +96,45 @@ namespace TimeTax.Model
                 return;
             }
 
-            // Физика игрока
             Player.Update(deltaTime, Player.Gravity);
-
-            // Коллизии с платформами (упрощённое разрешение)
+            ApplyConveyorEffect(deltaTime);
             ResolvePlatformCollisions();
-
-            // Сбор предметов и урон
+            HandlePortals();
             HandleCoinCollection();
             HandleEnemyCollision();
             HandleSpikeCollision();
             HandleCheckpoint();
-
-            // Проверка выхода
             CheckExit();
 
-            // Ограничение игрока экраном (чтобы не улетел)
             if (Player.Position.X < 0) Player.Position = new Vector2(0, Player.Position.Y);
             if (Player.Position.X + Player.Width > 800) Player.Position = new Vector2(800 - Player.Width, Player.Position.Y);
+            if (Player.Position.Y < -50) Player.Position = new Vector2(Player.Position.X, -50);
 
-            // Падение в пропасть (ниже экрана)
             if (Player.Position.Y > 480)
             {
                 ApplyPenalty(10f, true);
             }
 
             if (penaltyCooldown > 0) penaltyCooldown -= deltaTime;
+            if (portalCooldown > 0) portalCooldown -= deltaTime;
 
             PlayerMoved?.Invoke(Player.Position);
+        }
+
+        private void ApplyConveyorEffect(float deltaTime)
+        {
+            foreach (var conveyor in CurrentLevel.Conveyors)
+            {
+                var cBounds = conveyor.GetBounds();
+                var pBounds = Player.GetBounds();
+
+                if (pBounds.right > cBounds.left && pBounds.left < cBounds.right &&
+                    pBounds.bottom >= cBounds.top && pBounds.bottom <= cBounds.bottom + 5)
+                {
+                    float push = conveyor.Direction == ConveyorDirection.Right ? conveyor.Speed : -conveyor.Speed;
+                    Player.Position = new Vector2(Player.Position.X + push * deltaTime, Player.Position.Y);
+                }
+            }
         }
 
         private void ResolvePlatformCollisions()
@@ -92,7 +147,6 @@ namespace TimeTax.Model
                 if (plBounds.right > pBounds.left && plBounds.left < pBounds.right &&
                     plBounds.bottom > pBounds.top && plBounds.top < pBounds.bottom)
                 {
-                    // Вертикальное разрешение
                     float overlapTop = plBounds.bottom - pBounds.top;
                     float overlapBottom = pBounds.bottom - plBounds.top;
                     float overlapLeft = plBounds.right - pBounds.left;
@@ -100,13 +154,13 @@ namespace TimeTax.Model
 
                     float minOverlap = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
 
-                    if (minOverlap == overlapTop && Player.Velocity.Y > 0) // падал на платформу
+                    if (minOverlap == overlapTop && Player.Velocity.Y > 0)
                     {
                         Player.Position = new Vector2(Player.Position.X, pBounds.top - Player.Height);
                         Player.Velocity = new Vector2(Player.Velocity.X, 0);
                         Player.IsGrounded = true;
                     }
-                    else if (minOverlap == overlapBottom && Player.Velocity.Y < 0) // ударился снизу
+                    else if (minOverlap == overlapBottom && Player.Velocity.Y < 0)
                     {
                         Player.Position = new Vector2(Player.Position.X, pBounds.bottom);
                         Player.Velocity = new Vector2(Player.Velocity.X, 0);
@@ -121,6 +175,24 @@ namespace TimeTax.Model
                         Player.Position = new Vector2(pBounds.right, Player.Position.Y);
                         Player.Velocity = new Vector2(0, Player.Velocity.Y);
                     }
+                }
+            }
+        }
+
+        private void HandlePortals()
+        {
+            if (portalCooldown > 0) return;
+
+            foreach (var portal in CurrentLevel.Portals)
+            {
+                if (!portal.Active) continue;
+                if (CheckCollision(Player, portal))
+                {
+                    Player.Position = portal.TargetPosition;
+                    Player.Velocity = new Vector2(Player.Velocity.X * 0.5f, 0);
+                    portalCooldown = 1f;
+                    PlaySound?.Invoke("portal");
+                    break;
                 }
             }
         }
@@ -183,6 +255,7 @@ namespace TimeTax.Model
                 if (CheckCollision(Player, cp))
                 {
                     cp.Activated = true;
+                    PlaySound?.Invoke("checkpoint");
                 }
             }
         }
@@ -208,7 +281,6 @@ namespace TimeTax.Model
 
             if (respawn)
             {
-                // Возврат на последний активированный чекпоинт или спавн
                 Vector2 respawnPoint = CurrentLevel.PlayerSpawn;
                 foreach (var cp in CurrentLevel.Checkpoints)
                 {
@@ -217,9 +289,10 @@ namespace TimeTax.Model
                 }
                 Player.Position = respawnPoint;
                 Player.Velocity = Vector2.Zero;
+                Player.IsGrounded = false;
             }
 
-            penaltyCooldown = 0.5f;
+            penaltyCooldown = 0.8f;
         }
 
         private bool CheckCollision(ICollidable a, ICollidable b)
@@ -229,16 +302,15 @@ namespace TimeTax.Model
             return ab.left < bb.right && ab.right > bb.left && ab.top < bb.bottom && ab.bottom > bb.top;
         }
 
-        // Движение по командам контроллера
         public void MoveLeft()
         {
-            if (!LevelCompleted && !GameOver)
+            if (!LevelCompleted && !GameOver && !GameWon && !IsPaused)
                 Player.Velocity = new Vector2(-Player.MoveSpeed, Player.Velocity.Y);
         }
 
         public void MoveRight()
         {
-            if (!LevelCompleted && !GameOver)
+            if (!LevelCompleted && !GameOver && !GameWon && !IsPaused)
                 Player.Velocity = new Vector2(Player.MoveSpeed, Player.Velocity.Y);
         }
 
@@ -249,11 +321,16 @@ namespace TimeTax.Model
 
         public void Jump()
         {
-            if (Player.IsGrounded && !LevelCompleted && !GameOver)
+            if (Player.IsGrounded && !LevelCompleted && !GameOver && !GameWon && !IsPaused)
             {
                 Player.Velocity = new Vector2(Player.Velocity.X, Player.JumpVelocity);
                 Player.IsGrounded = false;
             }
+        }
+
+        public void TogglePause()
+        {
+            IsPaused = !IsPaused;
         }
     }
 }

@@ -31,9 +31,26 @@ namespace TimeTax.Controller
             if (jumpPressed)
                 model.Jump();
 
-            // R – рестарт
             if (currentKeyboard.IsKeyDown(Keys.R) && !previousKeyboard.IsKeyDown(Keys.R))
-                model.StartNewLevel();
+                model.StartLevel(model.CurrentLevelNumber);
+
+            if (currentKeyboard.IsKeyDown(Keys.Escape) && !previousKeyboard.IsKeyDown(Keys.Escape))
+                model.TogglePause();
+
+            if (model.LevelCompleted && !model.GameWon)
+            {
+                if ((currentKeyboard.IsKeyDown(Keys.Enter) && !previousKeyboard.IsKeyDown(Keys.Enter)) ||
+                    (currentKeyboard.IsKeyDown(Keys.Space) && !previousKeyboard.IsKeyDown(Keys.Space)))
+                {
+                    model.NextLevel();
+                }
+            }
+
+            if (model.GameOver)
+            {
+                if (currentKeyboard.IsKeyDown(Keys.Enter) && !previousKeyboard.IsKeyDown(Keys.Enter))
+                    model.StartNewGame();
+            }
 
             model.Update(deltaTime);
 
