@@ -29,6 +29,8 @@ namespace TimeTax.Model
         public event Action<int> LevelStarted;
         public event Action GameWonEvent;
         public event Action<int> ScoreChanged;
+        // === ИСПРАВЛЕНО: Action<TimeManager> вместо Action<<TimeManager> ===
+        public event Action<TimeManager> TimeManagerChanged;
 
         private float penaltyCooldown = 0f;
         private float portalCooldown = 0f;
@@ -46,7 +48,10 @@ namespace TimeTax.Model
             CurrentLevelNumber = levelNumber;
             CurrentLevel = new Level();
             CurrentLevel.LoadLevel(levelNumber);
+            
             Time = new TimeManager(CurrentLevel.StartTime);
+            TimeManagerChanged?.Invoke(Time);
+            
             Player = new Player { Position = CurrentLevel.PlayerSpawn };
 
             CollectedCoins = 0;
@@ -87,6 +92,9 @@ namespace TimeTax.Model
 
             foreach (var enemy in CurrentLevel.Enemies)
                 enemy.Update(deltaTime);
+
+            foreach (var fp in CurrentLevel.FadingPlatforms)
+                fp.Update(deltaTime);
 
             Time.Update(deltaTime);
             if (Time.CurrentTime <= 0)
@@ -140,41 +148,50 @@ namespace TimeTax.Model
         private void ResolvePlatformCollisions()
         {
             foreach (var platform in CurrentLevel.Platforms)
+                ResolvePlatformCollision(platform);
+
+            foreach (var platform in CurrentLevel.FadingPlatforms)
             {
-                var pBounds = platform.GetBounds();
-                var plBounds = Player.GetBounds();
+                if (platform.IsVisible)
+                    ResolvePlatformCollision(platform);
+            }
+        }
 
-                if (plBounds.right > pBounds.left && plBounds.left < pBounds.right &&
-                    plBounds.bottom > pBounds.top && plBounds.top < pBounds.bottom)
+        private void ResolvePlatformCollision(ICollidable platform)
+        {
+            var pBounds = platform.GetBounds();
+            var plBounds = Player.GetBounds();
+
+            if (plBounds.right > pBounds.left && plBounds.left < pBounds.right &&
+                plBounds.bottom > pBounds.top && plBounds.top < pBounds.bottom)
+            {
+                float overlapTop = plBounds.bottom - pBounds.top;
+                float overlapBottom = pBounds.bottom - plBounds.top;
+                float overlapLeft = plBounds.right - pBounds.left;
+                float overlapRight = pBounds.right - plBounds.left;
+
+                float minOverlap = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
+
+                if (minOverlap == overlapTop && Player.Velocity.Y > 0)
                 {
-                    float overlapTop = plBounds.bottom - pBounds.top;
-                    float overlapBottom = pBounds.bottom - plBounds.top;
-                    float overlapLeft = plBounds.right - pBounds.left;
-                    float overlapRight = pBounds.right - plBounds.left;
-
-                    float minOverlap = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
-
-                    if (minOverlap == overlapTop && Player.Velocity.Y > 0)
-                    {
-                        Player.Position = new Vector2(Player.Position.X, pBounds.top - Player.Height);
-                        Player.Velocity = new Vector2(Player.Velocity.X, 0);
-                        Player.IsGrounded = true;
-                    }
-                    else if (minOverlap == overlapBottom && Player.Velocity.Y < 0)
-                    {
-                        Player.Position = new Vector2(Player.Position.X, pBounds.bottom);
-                        Player.Velocity = new Vector2(Player.Velocity.X, 0);
-                    }
-                    else if (minOverlap == overlapLeft)
-                    {
-                        Player.Position = new Vector2(pBounds.left - Player.Width, Player.Position.Y);
-                        Player.Velocity = new Vector2(0, Player.Velocity.Y);
-                    }
-                    else if (minOverlap == overlapRight)
-                    {
-                        Player.Position = new Vector2(pBounds.right, Player.Position.Y);
-                        Player.Velocity = new Vector2(0, Player.Velocity.Y);
-                    }
+                    Player.Position = new Vector2(Player.Position.X, pBounds.top - Player.Height);
+                    Player.Velocity = new Vector2(Player.Velocity.X, 0);
+                    Player.IsGrounded = true;
+                }
+                else if (minOverlap == overlapBottom && Player.Velocity.Y < 0)
+                {
+                    Player.Position = new Vector2(Player.Position.X, pBounds.bottom);
+                    Player.Velocity = new Vector2(Player.Velocity.X, 0);
+                }
+                else if (minOverlap == overlapLeft)
+                {
+                    Player.Position = new Vector2(pBounds.left - Player.Width, Player.Position.Y);
+                    Player.Velocity = new Vector2(0, Player.Velocity.Y);
+                }
+                else if (minOverlap == overlapRight)
+                {
+                    Player.Position = new Vector2(pBounds.right, Player.Position.Y);
+                    Player.Velocity = new Vector2(0, Player.Velocity.Y);
                 }
             }
         }

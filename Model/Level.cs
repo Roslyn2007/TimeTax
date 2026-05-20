@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TimeTax.Model.Entities;
 using TimeTax.Model.Interfaces;
@@ -13,12 +14,62 @@ namespace TimeTax.Model
         public List<Checkpoint> Checkpoints { get; } = new List<Checkpoint>();
         public List<Portal> Portals { get; } = new List<Portal>();
         public List<Conveyor> Conveyors { get; } = new List<Conveyor>();
+        public List<FadingPlatform> FadingPlatforms { get; } = new List<FadingPlatform>();
         public ExitDoor Door { get; set; }
 
         public Vector2 PlayerSpawn { get; set; }
         public int RequiredCoins { get; set; } = 10;
         public float StartTime { get; set; } = 90f;
         public string Name { get; set; } = "Unknown";
+
+        // === НОВЫЙ КЛАСС: Исчезающая платформа ===
+        public class FadingPlatform : ICollidable
+        {
+            public Vector2 Position { get; set; }
+            public float Width { get; set; }
+            public float Height { get; set; }
+            
+            public bool IsVisible { get; set; } = true;
+            public float FadeTimer { get; set; } = 0f;
+            public float ReappearTimer { get; set; } = 0f;
+            
+            public const float FadeDuration = 2f;
+            public const float VisibleDuration = 5f;
+
+            public (float left, float right, float top, float bottom) GetBounds()
+            {
+                if (!IsVisible)
+                    return (0, 0, 0, 0);
+                    
+                float left = Position.X;
+                float right = Position.X + Width;
+                float top = Position.Y;
+                float bottom = Position.Y + Height;
+                return (left, right, top, bottom);
+            }
+
+            public void Update(float deltaTime)
+            {
+                if (IsVisible)
+                {
+                    FadeTimer += deltaTime;
+                    if (FadeTimer >= VisibleDuration)
+                    {
+                        IsVisible = false;
+                        FadeTimer = 0f;
+                    }
+                }
+                else
+                {
+                    ReappearTimer += deltaTime;
+                    if (ReappearTimer >= FadeDuration)
+                    {
+                        IsVisible = true;
+                        ReappearTimer = 0f;
+                    }
+                }
+            }
+        }
 
         public class Platform : ICollidable
         {
@@ -59,10 +110,11 @@ namespace TimeTax.Model
             Checkpoints.Clear();
             Portals.Clear();
             Conveyors.Clear();
+            FadingPlatforms.Clear();
             Door = null;
         }
 
-        private void LoadLevel1() // Уровень 1
+        private void LoadLevel1()
         {
             Name = "Tax Office";
             StartTime = 90f;
@@ -74,6 +126,12 @@ namespace TimeTax.Model
             Platforms.Add(new Platform { Position = new Vector2(500, 340), Width = 120, Height = 15 });
             Platforms.Add(new Platform { Position = new Vector2(350, 280), Width = 100, Height = 15 });
 
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(380, 380), 
+                Width = 80, 
+                Height = 15 
+            });
+
             Coins.Add(new Coin { Position = new Vector2(230, 355), Type = CoinType.Normal });
             Coins.Add(new Coin { Position = new Vector2(260, 355), Type = CoinType.Normal });
             Coins.Add(new Coin { Position = new Vector2(290, 355), Type = CoinType.Normal });
@@ -84,15 +142,12 @@ namespace TimeTax.Model
             Coins.Add(new Coin { Position = new Vector2(380, 255), Type = CoinType.Normal });
 
             Enemies.Add(new Enemy { Position = new Vector2(400, 440), PatrolStartX = 350, PatrolEndX = 500, PatrolSpeed = 50f });
-
             Spikes.Add(new Spike { Position = new Vector2(300, 445), Width = 40, Height = 10 });
-
             Checkpoints.Add(new Checkpoint { Position = new Vector2(600, 430) });
-
             Door = new ExitDoor { Position = new Vector2(750, 430), IsOpen = false };
         }
 
-        private void LoadLevel2() // Уроветь 2
+        private void LoadLevel2()
         {
             Name = "Clockwork";
             StartTime = 80f;
@@ -106,6 +161,17 @@ namespace TimeTax.Model
             Platforms.Add(new Platform { Position = new Vector2(600, 240), Width = 100, Height = 15 });
             Platforms.Add(new Platform { Position = new Vector2(100, 180), Width = 120, Height = 15 });
 
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(320, 360), 
+                Width = 60, 
+                Height = 15 
+            });
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(520, 300), 
+                Width = 60, 
+                Height = 15 
+            });
+
             Coins.Add(new Coin { Position = new Vector2(240, 335), Type = CoinType.Normal });
             Coins.Add(new Coin { Position = new Vector2(440, 275), Type = CoinType.Normal });
             Coins.Add(new Coin { Position = new Vector2(640, 215), Type = CoinType.Normal });
@@ -118,16 +184,13 @@ namespace TimeTax.Model
 
             Enemies.Add(new Enemy { Position = new Vector2(350, 440), PatrolStartX = 320, PatrolEndX = 480, PatrolSpeed = 70f });
             Enemies.Add(new Enemy { Position = new Vector2(550, 440), PatrolStartX = 520, PatrolEndX = 680, PatrolSpeed = 70f });
-
             Spikes.Add(new Spike { Position = new Vector2(280, 445), Width = 20, Height = 10 });
             Spikes.Add(new Spike { Position = new Vector2(500, 445), Width = 20, Height = 10 });
-
             Checkpoints.Add(new Checkpoint { Position = new Vector2(420, 270) });
-
             Door = new ExitDoor { Position = new Vector2(720, 430), IsOpen = false };
         }
 
-        private void LoadLevel3() // Уровент 3
+        private void LoadLevel3()
         {
             Name = "Time Maze";
             StartTime = 75f;
@@ -144,6 +207,17 @@ namespace TimeTax.Model
             Platforms.Add(new Platform { Position = new Vector2(550, 310), Width = 80, Height = 15 });
             Platforms.Add(new Platform { Position = new Vector2(650, 250), Width = 120, Height = 15 });
 
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(130, 340), 
+                Width = 50, 
+                Height = 15 
+            });
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(500, 370), 
+                Width = 50, 
+                Height = 15 
+            });
+
             Coins.Add(new Coin { Position = new Vector2(80, 315), Type = CoinType.Normal });
             Coins.Add(new Coin { Position = new Vector2(100, 315), Type = CoinType.Normal });
             Coins.Add(new Coin { Position = new Vector2(180, 245), Type = CoinType.Normal });
@@ -159,16 +233,12 @@ namespace TimeTax.Model
 
             Enemies.Add(new Enemy { Position = new Vector2(400, 440), PatrolStartX = 380, PatrolEndX = 500, PatrolSpeed = 90f });
             Enemies.Add(new Enemy { Position = new Vector2(670, 240), PatrolStartX = 660, PatrolEndX = 720, PatrolSpeed = 60f });
-
             Spikes.Add(new Spike { Position = new Vector2(300, 445), Width = 30, Height = 10 });
-
             Checkpoints.Add(new Checkpoint { Position = new Vector2(230, 120) });
             Checkpoints.Add(new Checkpoint { Position = new Vector2(680, 220) });
-
             Door = new ExitDoor { Position = new Vector2(750, 430), IsOpen = false };
         }
 
-        // Уроанеь 4
         private void LoadLevel4()
         {
             Name = "Time Factory";
@@ -176,23 +246,30 @@ namespace TimeTax.Model
             RequiredCoins = 12;
             PlayerSpawn = new Vector2(50, 400);
 
-            // Левый пол (старт)
             Platforms.Add(new Platform { Position = new Vector2(0, 460), Width = 180, Height = 20 });
-            // Правый пол
             Platforms.Add(new Platform { Position = new Vector2(300, 460), Width = 500, Height = 20 });
-            
-            // Платформа над конвейером 1 (левая)
             Platforms.Add(new Platform { Position = new Vector2(180, 380), Width = 100, Height = 15 });
-            // Платформа посередине
             Platforms.Add(new Platform { Position = new Vector2(350, 320), Width = 100, Height = 15 });
-            // Платформа над конвейером 2 (правая)
             Platforms.Add(new Platform { Position = new Vector2(550, 360), Width = 100, Height = 15 });
-            // Верхняя платформа (куда ведёт портал)
             Platforms.Add(new Platform { Position = new Vector2(600, 220), Width = 120, Height = 15 });
-            // Левая верхняя
             Platforms.Add(new Platform { Position = new Vector2(50, 200), Width = 100, Height = 15 });
 
-            // Конвейер 1: под платформой 180,380 — толкает ВПРАВО к платформе 350,320
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(280, 380), 
+                Width = 70, 
+                Height = 15 
+            });
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(450, 320), 
+                Width = 70, 
+                Height = 15 
+            });
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(480, 220), 
+                Width = 70, 
+                Height = 15 
+            });
+
             Conveyors.Add(new Conveyor { 
                 Position = new Vector2(180, 460), 
                 Width = 120, 
@@ -200,8 +277,6 @@ namespace TimeTax.Model
                 Direction = ConveyorDirection.Right, 
                 Speed = 100f 
             });
-            
-            // Конвейер 2: под платформой 550,360 — толкает ВЛЕВО (ловушка!)
             Conveyors.Add(new Conveyor { 
                 Position = new Vector2(500, 460), 
                 Width = 100, 
@@ -210,13 +285,11 @@ namespace TimeTax.Model
                 Speed = 80f 
             });
 
-            // Портал: с платформы 350,320 → на верхнюю 600,220
             Portals.Add(new Portal { 
-                Position = new Vector2(370, 280),  // Между платформами
-                TargetPosition = new Vector2(630, 180)  // На верхнюю платформу
+                Position = new Vector2(370, 280),
+                TargetPosition = new Vector2(630, 180)
             });
 
-            // Монеты
             Coins.Add(new Coin { Position = new Vector2(210, 355), Type = CoinType.Normal });
             Coins.Add(new Coin { Position = new Vector2(230, 355), Type = CoinType.Normal });
             Coins.Add(new Coin { Position = new Vector2(380, 295), Type = CoinType.Normal });
@@ -233,16 +306,11 @@ namespace TimeTax.Model
             Coins.Add(new Coin { Position = new Vector2(620, 435), Type = CoinType.Normal });
             Coins.Add(new Coin { Position = new Vector2(720, 435), Type = CoinType.Gold });
 
-            // Враги
             Enemies.Add(new Enemy { Position = new Vector2(350, 440), PatrolStartX = 300, PatrolEndX = 450, PatrolSpeed = 80f });
             Enemies.Add(new Enemy { Position = new Vector2(550, 440), PatrolStartX = 500, PatrolEndX = 650, PatrolSpeed = 80f });
-
-            // Шипы — в ямах между платформами
             Spikes.Add(new Spike { Position = new Vector2(180, 445), Width = 30, Height = 10 });
             Spikes.Add(new Spike { Position = new Vector2(480, 445), Width = 30, Height = 10 });
-
             Checkpoints.Add(new Checkpoint { Position = new Vector2(630, 190) });
-
             Door = new ExitDoor { Position = new Vector2(750, 430), IsOpen = false };
         }
 
@@ -259,6 +327,27 @@ namespace TimeTax.Model
             Platforms.Add(new Platform { Position = new Vector2(550, 240), Width = 120, Height = 15 });
             Platforms.Add(new Platform { Position = new Vector2(200, 180), Width = 120, Height = 15 });
             Platforms.Add(new Platform { Position = new Vector2(500, 130), Width = 180, Height = 15 });
+
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(280, 360), 
+                Width = 60, 
+                Height = 15 
+            });
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(480, 300), 
+                Width = 60, 
+                Height = 15 
+            });
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(380, 240), 
+                Width = 60, 
+                Height = 15 
+            });
+            FadingPlatforms.Add(new FadingPlatform { 
+                Position = new Vector2(680, 180), 
+                Width = 60, 
+                Height = 15 
+            });
 
             Coins.Add(new Coin { Position = new Vector2(180, 335), Type = CoinType.Normal });
             Coins.Add(new Coin { Position = new Vector2(200, 335), Type = CoinType.Normal });
@@ -282,14 +371,11 @@ namespace TimeTax.Model
             Enemies.Add(new Enemy { Position = new Vector2(300, 440), PatrolStartX = 200, PatrolEndX = 400, PatrolSpeed = 120f });
             Enemies.Add(new Enemy { Position = new Vector2(500, 440), PatrolStartX = 450, PatrolEndX = 600, PatrolSpeed = 100f });
             Enemies.Add(new Enemy { Position = new Vector2(400, 280), PatrolStartX = 350, PatrolEndX = 450, PatrolSpeed = 90f });
-
             Spikes.Add(new Spike { Position = new Vector2(250, 445), Width = 40, Height = 10 });
             Spikes.Add(new Spike { Position = new Vector2(450, 445), Width = 40, Height = 10 });
             Spikes.Add(new Spike { Position = new Vector2(650, 445), Width = 40, Height = 10 });
-
             Checkpoints.Add(new Checkpoint { Position = new Vector2(560, 210) });
             Checkpoints.Add(new Checkpoint { Position = new Vector2(530, 100) });
-
             Door = new ExitDoor { Position = new Vector2(720, 100), IsOpen = false };
         }
     }
