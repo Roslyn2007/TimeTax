@@ -12,7 +12,7 @@ namespace TimeTax.Model.Entities
         public float Height => 20f;
 
         public const float MoveSpeed = 150f;
-        public const float JumpVelocity = -420f;  // Было -320, стало -420
+        public const float JumpVelocity = -420f; 
         public const float Gravity = 600f;
 
         public (float left, float right, float top, float bottom) GetBounds()

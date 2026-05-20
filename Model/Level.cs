@@ -62,7 +62,7 @@ namespace TimeTax.Model
             Door = null;
         }
 
-        private void LoadLevel1()
+        private void LoadLevel1() // Уровень 1
         {
             Name = "Tax Office";
             StartTime = 90f;
@@ -92,7 +92,7 @@ namespace TimeTax.Model
             Door = new ExitDoor { Position = new Vector2(750, 430), IsOpen = false };
         }
 
-        private void LoadLevel2()
+        private void LoadLevel2() // Уроветь 2
         {
             Name = "Clockwork";
             StartTime = 80f;
@@ -127,7 +127,7 @@ namespace TimeTax.Model
             Door = new ExitDoor { Position = new Vector2(720, 430), IsOpen = false };
         }
 
-        private void LoadLevel3()
+        private void LoadLevel3() // Уровент 3
         {
             Name = "Time Maze";
             StartTime = 75f;
@@ -168,7 +168,7 @@ namespace TimeTax.Model
             Door = new ExitDoor { Position = new Vector2(750, 430), IsOpen = false };
         }
 
-        // УРОВЕНЬ 4 — ИСПРАВЛЕННЫЙ
+        // Уроанеь 4
         private void LoadLevel4()
         {
             Name = "Time Factory";
@@ -211,7 +211,6 @@ namespace TimeTax.Model
             });
 
             // Портал: с платформы 350,320 → на верхнюю 600,220
-            // Размещаем портал на уровне пола, куда можно упасть с платформы
             Portals.Add(new Portal { 
                 Position = new Vector2(370, 280),  // Между платформами
                 TargetPosition = new Vector2(630, 180)  // На верхнюю платформу
