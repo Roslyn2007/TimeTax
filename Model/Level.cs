@@ -62,17 +62,17 @@ namespace TimeTax.Model
             Platforms.Add(new Platform { Position = new Vector2(650, 360), Width = 120, Height = 20 });
             Platforms.Add(new Platform { Position = new Vector2(280, 400), Width = 80, Height = 20 });
 
-            PlayerSpawn = new Vector2(30, 430);
+            PlayerSpawn = new Vector2(30, 440);
 
-            Coins.Add(new Coin { Position = new Vector2(80, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(200, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(400, 415), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(500, 415), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(650, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(750, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(200, 335), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(450, 295), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(700, 335), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(80, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(200, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(400, 425), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(500, 425), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(650, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(750, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(200, 345), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(450, 305), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(700, 345), Type = CoinType.Normal });
 
             Enemies.Add(new Enemy
             {
@@ -127,19 +127,19 @@ namespace TimeTax.Model
             Platforms.Add(new Platform { Position = new Vector2(500, 240), Width = 80, Height = 20 });
             Platforms.Add(new Platform { Position = new Vector2(200, 300), Width = 60, Height = 20 });
 
-            PlayerSpawn = new Vector2(30, 430);
+            PlayerSpawn = new Vector2(30, 440);
 
-            Coins.Add(new Coin { Position = new Vector2(80, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(160, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(300, 415), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(400, 415), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(520, 395), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(720, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(160, 335), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(390, 295), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(640, 335), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(290, 215), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(540, 215), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(80, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(160, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(300, 425), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(400, 425), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(520, 405), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(720, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(160, 345), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(390, 305), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(640, 345), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(290, 225), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(540, 225), Type = CoinType.Normal });
 
             Enemies.Add(new Enemy
             {
@@ -222,30 +222,30 @@ namespace TimeTax.Model
 
             Portals.Add(new Portal
             {
-                Position = new Vector2(120, 310),
-                TargetPosition = new Vector2(540, 236),
+                Position = new Vector2(120, 320),
+                TargetPosition = new Vector2(540, 220),
                 Active = true
             });
             Portals.Add(new Portal
             {
-                Position = new Vector2(620, 290),
-                TargetPosition = new Vector2(240, 236),
+                Position = new Vector2(620, 320),
+                TargetPosition = new Vector2(240, 220),
                 Active = true
             });
 
-            PlayerSpawn = new Vector2(30, 430);
+            PlayerSpawn = new Vector2(30, 440);
 
-            Coins.Add(new Coin { Position = new Vector2(60, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(140, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(290, 415), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(380, 415), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(490, 395), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(700, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(130, 335), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(380, 315), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(640, 335), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(230, 235), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(540, 235), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(60, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(140, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(290, 425), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(380, 425), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(490, 405), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(700, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(130, 345), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(380, 325), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(640, 345), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(230, 245), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(540, 245), Type = CoinType.Normal });
 
             Enemies.Add(new Enemy
             {
@@ -329,30 +329,30 @@ namespace TimeTax.Model
 
             Portals.Add(new Portal
             {
-                Position = new Vector2(115, 300),
-                TargetPosition = new Vector2(535, 236),
+                Position = new Vector2(115, 320),
+                TargetPosition = new Vector2(535, 220),
                 Active = true
             });
             Portals.Add(new Portal
             {
-                Position = new Vector2(620, 280),
-                TargetPosition = new Vector2(285, 236),
+                Position = new Vector2(620, 320),
+                TargetPosition = new Vector2(285, 220),
                 Active = true
             });
 
-            PlayerSpawn = new Vector2(30, 430);
+            PlayerSpawn = new Vector2(30, 440);
 
-            Coins.Add(new Coin { Position = new Vector2(50, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(130, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(280, 415), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(380, 415), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(480, 395), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(700, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(120, 335), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(380, 315), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(640, 335), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(280, 235), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(530, 235), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(50, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(130, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(280, 425), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(380, 425), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(480, 405), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(700, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(120, 345), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(380, 325), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(640, 345), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(280, 245), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(530, 245), Type = CoinType.Normal });
 
             Enemies.Add(new Enemy
             {
@@ -455,31 +455,31 @@ namespace TimeTax.Model
 
             Portals.Add(new Portal
             {
-                Position = new Vector2(95, 290),
-                TargetPosition = new Vector2(525, 236),
+                Position = new Vector2(95, 320),
+                TargetPosition = new Vector2(525, 220),
                 Active = true
             });
             Portals.Add(new Portal
             {
-                Position = new Vector2(610, 270),
-                TargetPosition = new Vector2(225, 236),
+                Position = new Vector2(610, 320),
+                TargetPosition = new Vector2(225, 220),
                 Active = true
             });
 
-            PlayerSpawn = new Vector2(30, 430);
+            PlayerSpawn = new Vector2(30, 440);
 
-            Coins.Add(new Coin { Position = new Vector2(40, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(110, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(260, 415), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(360, 415), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(460, 395), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(680, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(760, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(100, 335), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(350, 315), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(610, 335), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(230, 235), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(530, 235), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(40, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(110, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(260, 425), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(360, 425), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(460, 405), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(680, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(760, 445), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(100, 345), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(350, 325), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(610, 345), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(230, 245), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(530, 245), Type = CoinType.Normal });
             Coins.Add(new Coin { Position = new Vector2(380, 145), Type = CoinType.Gold });
 
             Enemies.Add(new Enemy
