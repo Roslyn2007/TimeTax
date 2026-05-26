@@ -46,12 +46,6 @@ namespace TimeTax.Controller
                 }
             }
 
-            if (model.GameOver)
-            {
-                if (currentKeyboard.IsKeyDown(Keys.Enter) && !previousKeyboard.IsKeyDown(Keys.Enter))
-                    model.StartNewGame();
-            }
-
             model.Update(deltaTime);
 
             previousKeyboard = currentKeyboard;

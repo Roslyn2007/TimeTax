@@ -7,28 +7,21 @@ using TimeTax.Controller;
 
 namespace TimeTax
 {
-    public enum GameState
-    {
-        Menu,
-        Playing,
-        GameOver,
-        Victory
-    }
-
     public class TimeTaxGame : Game
     {
         private GraphicsDeviceManager graphics;
-        private SpriteBatch spriteBatch;
-        private SpriteFont font;
-
-        private GameModel gameModel;
-        private GameController gameController;
-        private GameView gameView;
-        private MenuView menuView;
-        private MenuController menuController;
+        private SpriteBatch spriteBatch = null!;
+        private SpriteFont font = null!;
+        private GameModel gameModel = null!;
+        private GameController gameController = null!;
+        private GameView gameView = null!;
+        private MenuView menuView = null!;
+        private MenuController menuController = null!;
+        private Texture2D pixel = null!;
+        private Texture2D? backgroundTexture;
+        private AudioManager? audio;
 
         private GameState currentState = GameState.Menu;
-        private Texture2D pixel;
 
         public TimeTaxGame()
         {
@@ -50,28 +43,75 @@ namespace TimeTax
             pixel = new Texture2D(GraphicsDevice, 1, 1);
             pixel.SetData(new[] { Color.White });
 
+            try
+            {
+                string bgPath = System.IO.Path.Combine(Content.RootDirectory, "bg.png");
+                if (System.IO.File.Exists(bgPath))
+                    using (var stream = System.IO.File.OpenRead(bgPath))
+                        backgroundTexture = Texture2D.FromStream(GraphicsDevice, stream);
+            }
+            catch { backgroundTexture = null; }
+
             font = Content.Load<SpriteFont>("Font");
 
-            menuView = new MenuView(GraphicsDevice, spriteBatch, pixel, font);
-            menuController = new MenuController(menuView);
+            audio = new AudioManager();
+            try { audio.LoadContent(Content, GraphicsDevice); }
+            catch { }
 
-            menuView.StartGameRequested += () =>
+            var menuModel = new MenuModel();
+            menuController = new MenuController(menuModel);
+            menuView = new MenuView(GraphicsDevice, spriteBatch, pixel, font, menuModel, audio);
+
+            menuModel.StartGameRequested += () =>
             {
                 StartGame();
                 currentState = GameState.Playing;
             };
-            menuView.QuitRequested += () => Exit();
+            menuModel.QuitRequested += () => Exit();
+            menuModel.SoundToggleRequested += () =>
+            {
+                audio?.ToggleSound();
+            };
         }
 
         private void StartGame()
         {
             gameModel = new GameModel();
-            gameModel.StartNewGame();
+
+            if (audio != null)
+            {
+                gameModel.CoinsChanged += _ => audio.PlayCoin();
+                gameModel.Jumped += () => audio.PlayJump();
+                gameModel.DamageTaken += () => audio.PlayHurt();
+                gameModel.CheckpointActivated += () => audio.PlayCheckpoint();
+                gameModel.PortalUsed += () => audio.PlayPortal();
+                gameModel.GameWonEvent += () => audio.PlayVictoryMusic();
+                gameModel.GameLost += () => audio.PlayGameOverMusic();
+                gameModel.LevelStarted += (_, _) => audio.PlayGameMusic();
+                gameModel.LevelCompletedEvent += () => audio.PlayLevelCompleteMusic();
+            }
+
             gameController = new GameController(gameModel);
-            gameView = new GameView(GraphicsDevice, spriteBatch, gameModel, pixel, font);
+            gameView = new GameView(GraphicsDevice, spriteBatch, gameModel, pixel, font, backgroundTexture);
 
             gameModel.GameLost += () => currentState = GameState.GameOver;
             gameModel.GameWonEvent += () => currentState = GameState.Victory;
+
+            gameModel.PauseStateChanged += paused =>
+            {
+                if (paused)
+                {
+                    audio?.PauseMusic();
+                    gameView.EnterPauseMenu();
+                }
+                else
+                {
+                    audio?.PlayGameMusic();
+                    gameView.ExitPauseMenu();
+                }
+            };
+
+            gameModel.StartNewGame();
         }
 
         protected override void Update(GameTime gameTime)
@@ -82,13 +122,17 @@ namespace TimeTax
             {
                 case GameState.Menu:
                     menuController.Update(deltaTime);
+                    audio?.PlayMenuMusic();
                     break;
+
                 case GameState.Playing:
-                    gameController?.Update(deltaTime);
+                    HandlePlayingInput(deltaTime);
                     break;
+
                 case GameState.GameOver:
                     HandleGameOverInput();
                     break;
+
                 case GameState.Victory:
                     HandleVictoryInput();
                     break;
@@ -97,22 +141,79 @@ namespace TimeTax
             base.Update(gameTime);
         }
 
+        private void HandlePlayingInput(float deltaTime)
+        {
+            KeyboardState currentKeyboard = Keyboard.GetState();
+            KeyboardState prevKb = previousKeyboard;
+
+            if (gameModel.IsPaused)
+            {
+                bool upPressed = (currentKeyboard.IsKeyDown(Keys.Up) || currentKeyboard.IsKeyDown(Keys.W))
+                    && !prevKb.IsKeyDown(Keys.Up) && !prevKb.IsKeyDown(Keys.W);
+                bool downPressed = (currentKeyboard.IsKeyDown(Keys.Down) || currentKeyboard.IsKeyDown(Keys.S))
+                    && !prevKb.IsKeyDown(Keys.Down) && !prevKb.IsKeyDown(Keys.S);
+                bool enterPressed = currentKeyboard.IsKeyDown(Keys.Enter) && !prevKb.IsKeyDown(Keys.Enter);
+                bool escapePressed = currentKeyboard.IsKeyDown(Keys.Escape) && !prevKb.IsKeyDown(Keys.Escape);
+
+                if (upPressed)
+                    gameView.PauseMenuSelectPrevious();
+                if (downPressed)
+                    gameView.PauseMenuSelectNext();
+                if (enterPressed)
+                {
+                    int result = gameView.PauseMenuActivateSelected(audio?.SoundEnabled ?? true);
+                    if (result == 0)
+                    {
+                        gameModel.TogglePause();
+                    }
+                    else if (result == 1)
+                    {
+                        audio?.ToggleSound();
+                        gameView.UpdateSoundText(audio?.SoundEnabled ?? true);
+                    }
+                    else if (result == 2)
+                    {
+                        audio?.StopMusic();
+                        gameModel.TogglePause();
+                        currentState = GameState.Menu;
+                    }
+                }
+                if (escapePressed)
+                {
+                    gameModel.TogglePause();
+                }
+
+                previousKeyboard = currentKeyboard;
+                return;
+            }
+
+            gameController?.Update(deltaTime);
+
+            previousKeyboard = currentKeyboard;
+        }
+
+        private KeyboardState previousKeyboard;
+
         private void HandleGameOverInput()
         {
             KeyboardState kb = Keyboard.GetState();
-            if (kb.IsKeyDown(Keys.Enter))
+            if (kb.IsKeyDown(Keys.Enter) && !previousKeyboard.IsKeyDown(Keys.Enter))
             {
+                audio?.StopMusic();
                 currentState = GameState.Menu;
             }
+            previousKeyboard = kb;
         }
 
         private void HandleVictoryInput()
         {
             KeyboardState kb = Keyboard.GetState();
-            if (kb.IsKeyDown(Keys.Enter))
+            if (kb.IsKeyDown(Keys.Enter) && !previousKeyboard.IsKeyDown(Keys.Enter))
             {
+                audio?.StopMusic();
                 currentState = GameState.Menu;
             }
+            previousKeyboard = kb;
         }
 
         protected override void Draw(GameTime gameTime)
@@ -128,34 +229,14 @@ namespace TimeTax
                     gameView?.Draw(gameTime);
                     break;
                 case GameState.GameOver:
-                    DrawGameOver();
+                    gameView?.Draw(gameTime);
                     break;
                 case GameState.Victory:
-                    DrawVictory();
+                    gameView?.Draw(gameTime);
                     break;
             }
 
             base.Draw(gameTime);
-        }
-
-        private void DrawGameOver()
-        {
-            spriteBatch.Begin();
-            spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), new Color(0, 0, 0, 200));
-            spriteBatch.Draw(pixel, new Rectangle(250, 150, 300, 180), Color.DarkRed);
-            spriteBatch.DrawString(font, "GAME OVER", new Microsoft.Xna.Framework.Vector2(320, 180), Color.White);
-            spriteBatch.DrawString(font, "Press ENTER", new Microsoft.Xna.Framework.Vector2(315, 240), Color.Yellow);
-            spriteBatch.End();
-        }
-
-        private void DrawVictory()
-        {
-            spriteBatch.Begin();
-            spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), new Color(0, 0, 0, 200));
-            spriteBatch.Draw(pixel, new Rectangle(250, 150, 300, 180), Color.Gold);
-            spriteBatch.DrawString(font, "YOU WON!", new Microsoft.Xna.Framework.Vector2(325, 180), Color.Black);
-            spriteBatch.DrawString(font, "Press ENTER", new Microsoft.Xna.Framework.Vector2(315, 240), Color.Black);
-            spriteBatch.End();
         }
     }
 }

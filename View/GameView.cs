@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using TimeTax.Model;
 using TimeTax.Model.Entities;
 using System;
+using System.Collections.Generic;
 
 namespace TimeTax.View
 {
@@ -12,10 +13,6 @@ namespace TimeTax.View
         private Texture2D pixel;
         private SpriteFont font;
         private UIRenderer ui;
-
-        private float animationTimer = 0f;
-        private int currentFrame = 0;
-        private const float FrameDuration = 0.15f;
 
         private Microsoft.Xna.Framework.Vector2 playerPosition;
         private float currentTime;
@@ -27,62 +24,162 @@ namespace TimeTax.View
         private string levelName = "";
         private int levelNumber = 1;
 
-        private GameModel model;
+        private TimeManager? subscribedTimeManager;
+        private Texture2D background;
 
-        public GameView(GraphicsDevice graphicsDevice, SpriteBatch sharedSpriteBatch, GameModel model, Texture2D sharedPixel, SpriteFont font)
+        public bool IsInPauseMenu => ui.IsInPauseMenu;
+
+        private List<Platform> platforms = new();
+        private List<FadingPlatform> fadingPlatforms = new();
+        private List<Coin> coins = new();
+        private List<Enemy> enemies = new();
+        private List<Spike> spikes = new();
+        private List<Checkpoint> checkpoints = new();
+        private List<Portal> portals = new();
+        private List<Conveyor> conveyors = new();
+        private ExitDoor? door;
+        private Player? player;
+
+        private readonly HashSet<Coin> collectedCoinSet = new();
+        private readonly HashSet<Checkpoint> activatedCheckpointSet = new();
+        private readonly HashSet<FadingPlatform> invisiblePlatformSet = new();
+        private int playerWidth = 20;
+        private int playerHeight = 20;
+
+        private bool gameOver;
+        private bool levelCompleted;
+        private bool gameWon;
+        private bool isPaused;
+
+        public GameView(GraphicsDevice graphicsDevice, SpriteBatch sharedSpriteBatch,
+                        GameModel model, Texture2D sharedPixel, SpriteFont font,
+                        Texture2D backgroundTexture)
         {
             this.spriteBatch = sharedSpriteBatch;
-            this.model = model;
             this.pixel = sharedPixel;
             this.font = font;
+            this.background = backgroundTexture;
             ui = new UIRenderer(sharedSpriteBatch, pixel, font);
 
             model.PlayerMoved += pos => playerPosition = new Microsoft.Xna.Framework.Vector2(pos.X, pos.Y);
-            
-            // Подписка на TimeChanged через метод, чтобы можно было переподписаться
-            SubscribeToTimeManager(model.Time);
-            
+            model.TimeManagerChanged += tm => SubscribeToTimeManager(tm);
             model.CoinsChanged += c => collectedCoins = c;
             model.ScoreChanged += s => currentScore = s;
-            
-            model.LevelStarted += num =>
+
+            model.CoinCollectedEvent += coin => collectedCoinSet.Add(coin);
+            model.CheckpointStateChanged += cp => activatedCheckpointSet.Add(cp);
+            model.DoorStateChanged += open => doorOpen = open;
+            model.FadingPlatformChanged += fp =>
+            {
+                if (fp.IsVisible)
+                    invisiblePlatformSet.Remove(fp);
+                else
+                    invisiblePlatformSet.Add(fp);
+            };
+
+            model.LevelStarted += (num, level) =>
             {
                 levelNumber = num;
-                levelName = model.CurrentLevel?.Name ?? "";
-                requiredCoins = model.TotalCoinsRequired;
+                levelName = level.Name ?? "";
+                requiredCoins = level.RequiredCoins;
                 doorOpen = false;
-            };
-            
-            // === НОВОЕ: переподписка при смене TimeManager ===
-            model.TimeManagerChanged += newTimeManager =>
-            {
-                SubscribeToTimeManager(newTimeManager);
-            };
-            
-            model.Time.TimeRanOut += () => { };
-            model.LevelFinished += () => { };
 
-            playerPosition = new Microsoft.Xna.Framework.Vector2(model.Player.Position.X, model.Player.Position.Y);
-            currentTime = model.Time.CurrentTime;
-            collectedCoins = model.CollectedCoins;
-            requiredCoins = model.TotalCoinsRequired;
-            doorOpen = model.CurrentLevel.Door?.IsOpen ?? false;
-            levelName = model.CurrentLevel?.Name ?? "";
-            levelNumber = model.CurrentLevelNumber;
+                levelCompleted = false;
+                gameOver = false;
+                gameWon = false;
+                isPaused = false;
+
+                platforms = level.Platforms;
+                fadingPlatforms = level.FadingPlatforms;
+                coins = level.Coins;
+                enemies = level.Enemies;
+                spikes = level.Spikes;
+                checkpoints = level.Checkpoints;
+                portals = level.Portals;
+                conveyors = level.Conveyors;
+                door = level.Door;
+
+                collectedCoinSet.Clear();
+                activatedCheckpointSet.Clear();
+                invisiblePlatformSet.Clear();
+            };
+
+            model.EnemiesChanged += newEnemies =>
+            {
+                enemies = newEnemies;
+            };
+
+            model.PlayerCreated += p =>
+            {
+                player = p;
+                playerWidth = (int)p.Width;
+                playerHeight = (int)p.Height;
+            };
+            model.PauseStateChanged += paused => isPaused = paused;
+            model.GameLost += () => gameOver = true;
+            model.GameWonEvent += () => gameWon = true;
+            model.LevelCompletedEvent += () => levelCompleted = true;
         }
 
         private void SubscribeToTimeManager(TimeManager timeManager)
         {
-            // Отписываемся от старого, если нужно (здесь упрощённо — просто подписываемся на новый)
-            timeManager.TimeChanged += t => currentTime = t;
-            timeManager.ScreenEffectChanged += eff => screenEffect = eff;
+            if (subscribedTimeManager != null)
+            {
+                subscribedTimeManager.TimeChanged -= OnTimeChanged;
+                subscribedTimeManager.ScreenEffectChanged -= OnScreenEffectChanged;
+            }
+
+            subscribedTimeManager = timeManager;
+
+            if (subscribedTimeManager != null)
+            {
+                subscribedTimeManager.TimeChanged += OnTimeChanged;
+                subscribedTimeManager.ScreenEffectChanged += OnScreenEffectChanged;
+            }
+        }
+
+        private void OnTimeChanged(float time)
+        {
+            currentTime = time;
+        }
+
+        private void OnScreenEffectChanged(string effect)
+        {
+            screenEffect = effect;
+        }
+
+        public void EnterPauseMenu()
+        {
+            ui.EnterPauseMenu();
+        }
+
+        public void ExitPauseMenu()
+        {
+            ui.ExitPauseMenu();
+        }
+
+        public void PauseMenuSelectNext()
+        {
+            ui.SelectNext();
+        }
+
+        public void PauseMenuSelectPrevious()
+        {
+            ui.SelectPrevious();
+        }
+
+        public int PauseMenuActivateSelected(bool soundEnabled)
+        {
+            return ui.ActivateSelected(soundEnabled);
+        }
+
+        public void UpdateSoundText(bool soundEnabled)
+        {
+            ui.UpdateSoundText(soundEnabled);
         }
 
         public void Draw(GameTime gameTime)
         {
-            float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
-            UpdateAnimation(deltaTime);
-
             Color bgColor = screenEffect switch
             {
                 "normal" => new Color(30, 30, 60),
@@ -100,18 +197,30 @@ namespace TimeTax.View
 
             spriteBatch.Begin();
 
-            spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), bgColor);
+            if (background != null)
+            {
+                spriteBatch.Draw(background, new Rectangle(0, 0, 800, 480), Color.White);
+                if (screenEffect != "normal")
+                {
+                    float alpha = screenEffect == "critical" ? 0.5f : 0.25f;
+                    spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), bgColor * alpha);
+                }
+            }
+            else
+            {
+                spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), bgColor);
+            }
 
-            foreach (var platform in model.CurrentLevel.Platforms)
+            foreach (var platform in platforms)
                 spriteBatch.Draw(pixel,
                     new Rectangle((int)platform.Position.X, (int)platform.Position.Y, (int)platform.Width, (int)platform.Height),
                     Color.Gray);
 
-            foreach (var fp in model.CurrentLevel.FadingPlatforms)
+            foreach (var fp in fadingPlatforms)
             {
-                if (fp.IsVisible)
+                if (!invisiblePlatformSet.Contains(fp))
                 {
-                    float warning = fp.FadeTimer / Level.FadingPlatform.VisibleDuration;
+                    float warning = fp.FadeTimer / FadingPlatform.VisibleDuration;
                     Color fpColor = warning > 0.7f
                         ? new Color(255, (int)(255 * (1 - warning)), 0)
                         : new Color(150, 150, 200);
@@ -128,7 +237,7 @@ namespace TimeTax.View
                 }
             }
 
-            foreach (var conveyor in model.CurrentLevel.Conveyors)
+            foreach (var conveyor in conveyors)
             {
                 Color conveyorColor = conveyor.Direction == ConveyorDirection.Right ? Color.Cyan : Color.LightBlue;
                 spriteBatch.Draw(pixel,
@@ -138,7 +247,7 @@ namespace TimeTax.View
                 spriteBatch.Draw(pixel, new Rectangle(arrowX, (int)conveyor.Position.Y - 3, 10, 4), Color.White);
             }
 
-            foreach (var portal in model.CurrentLevel.Portals)
+            foreach (var portal in portals)
             {
                 Color portalColor = Color.Purple;
                 float portalPulse = (float)Math.Sin(gameTime.TotalGameTime.TotalSeconds * 4) * 0.3f + 0.7f;
@@ -147,9 +256,9 @@ namespace TimeTax.View
                     new Color((int)(portalColor.R * portalPulse), (int)(portalColor.G * portalPulse), (int)(portalColor.B * portalPulse)));
             }
 
-            foreach (var coin in model.CurrentLevel.Coins)
+            foreach (var coin in coins)
             {
-                if (coin.Collected) continue;
+                if (collectedCoinSet.Contains(coin)) continue;
                 Color coinColor = coin.Type == CoinType.Gold ? Color.Gold : Color.Yellow;
                 float coinPulse = (float)Math.Sin(gameTime.TotalGameTime.TotalSeconds * 6) * 2f;
                 int size = (int)(15 + coinPulse);
@@ -159,61 +268,48 @@ namespace TimeTax.View
                     coinColor);
             }
 
-            foreach (var enemy in model.CurrentLevel.Enemies)
-                if (enemy.Active)
-                    DrawEnemy(enemy, gameTime);
+            foreach (var enemy in enemies)
+                DrawEnemy(enemy, gameTime);
 
-            foreach (var spike in model.CurrentLevel.Spikes)
+            foreach (var spike in spikes)
                 DrawSpike(spike);
 
-            foreach (var cp in model.CurrentLevel.Checkpoints)
+            foreach (var cp in checkpoints)
             {
-                Color cpColor = cp.Activated ? Color.LightGreen : Color.DarkGray;
+                Color cpColor = activatedCheckpointSet.Contains(cp) ? Color.LightGreen : Color.DarkGray;
                 spriteBatch.Draw(pixel, new Rectangle((int)cp.Position.X, (int)cp.Position.Y, 4, 32), Color.Brown);
                 spriteBatch.Draw(pixel, new Rectangle((int)cp.Position.X + 4, (int)cp.Position.Y, 20, 16), cpColor);
             }
 
-            if (model.CurrentLevel.Door != null)
+            if (door != null)
             {
-                doorOpen = model.CurrentLevel.Door.IsOpen;
                 Color doorColor = doorOpen ? Color.Green : Color.Red;
                 spriteBatch.Draw(pixel,
-                    new Rectangle((int)model.CurrentLevel.Door.Position.X - 2, (int)model.CurrentLevel.Door.Position.Y - 2,
-                        (int)model.CurrentLevel.Door.Width + 4, (int)model.CurrentLevel.Door.Height + 4),
+                    new Rectangle((int)door.Position.X - 2, (int)door.Position.Y - 2,
+                        (int)door.Width + 4, (int)door.Height + 4),
                     Color.DarkGray);
                 spriteBatch.Draw(pixel,
-                    new Rectangle((int)model.CurrentLevel.Door.Position.X, (int)model.CurrentLevel.Door.Position.Y,
-                        (int)model.CurrentLevel.Door.Width, (int)model.CurrentLevel.Door.Height),
+                    new Rectangle((int)door.Position.X, (int)door.Position.Y,
+                        (int)door.Width, (int)door.Height),
                     doorColor);
                 spriteBatch.Draw(pixel,
-                    new Rectangle((int)model.CurrentLevel.Door.Position.X + 16, (int)model.CurrentLevel.Door.Position.Y + 14, 4, 4),
+                    new Rectangle((int)door.Position.X + 16, (int)door.Position.Y + 14, 4, 4),
                     Color.Yellow);
             }
 
             DrawPlayer(gameTime);
 
-            ui.Draw(currentTime, collectedCoins, requiredCoins, currentScore, model.GameOver, model.LevelCompleted, model.GameWon, model.IsPaused, levelName, levelNumber);
+            ui.Draw(currentTime, collectedCoins, requiredCoins, currentScore, gameOver, levelCompleted, gameWon, isPaused, levelName, levelNumber);
 
             spriteBatch.End();
         }
 
-        private void UpdateAnimation(float deltaTime)
-        {
-            animationTimer += deltaTime;
-            if (animationTimer >= FrameDuration)
-            {
-                animationTimer = 0f;
-                currentFrame = (currentFrame + 1) % 4;
-            }
-        }
-
         private void DrawPlayer(GameTime gameTime)
         {
-            var player = model.Player;
             int x = (int)playerPosition.X;
             int y = (int)playerPosition.Y;
-            int w = (int)player.Width;
-            int h = (int)player.Height;
+            int w = playerWidth;
+            int h = playerHeight;
 
             spriteBatch.Draw(pixel, new Rectangle(x, y, w, h), Color.LimeGreen);
             spriteBatch.Draw(pixel, new Rectangle(x + 2, y + 2, w - 4, 10), Color.LightGreen);

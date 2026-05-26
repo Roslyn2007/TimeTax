@@ -1,15 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Diagnostics;
 using TimeTax.Model.Entities;
-using TimeTax.Model.Interfaces;
+using TimeTax.Model.Collision;
+using TimeTax.Model.Pathfinding;
 
 namespace TimeTax.Model
 {
     public class GameModel
     {
-        public Player Player { get; private set; }
-        public Level CurrentLevel { get; private set; }
-        public TimeManager Time { get; private set; }
+        public Player Player { get; private set; } = null!;
+        public Level CurrentLevel { get; private set; } = null!;
+        public TimeManager Time { get; private set; } = null!;
+        public CollisionManager CollisionManager { get; private set; } = null!;
+        public AStarPathfinder Pathfinder { get; private set; } = null!;
 
         public int CollectedCoins { get; private set; }
         public int TotalCoinsRequired => CurrentLevel?.RequiredCoins ?? 0;
@@ -19,21 +24,40 @@ namespace TimeTax.Model
         public int CurrentLevelNumber { get; private set; }
         public int TotalLevels => 5;
         public int Score { get; private set; }
-        public bool IsPaused { get; set; }
+        public bool IsPaused { get; private set; }
 
-        public event Action<int> CoinsChanged;
-        public event Action LevelFinished;
-        public event Action GameLost;
-        public event Action<string> PlaySound;
-        public event Action<Vector2> PlayerMoved;
-        public event Action<int> LevelStarted;
-        public event Action GameWonEvent;
-        public event Action<int> ScoreChanged;
-        // === ИСПРАВЛЕНО: Action<TimeManager> вместо Action<<TimeManager> ===
-        public event Action<TimeManager> TimeManagerChanged;
+        public void TogglePause()
+        {
+            IsPaused = !IsPaused;
+            PauseStateChanged?.Invoke(IsPaused);
+        }
+
+        public event Action<int, Level>? LevelStarted;
+        public event Action<Player>? PlayerCreated;
+        public event Action<int>? CoinsChanged;
+        public event Action? GameLost;
+        public event Action<Vector2>? PlayerMoved;
+        public event Action? GameWonEvent;
+        public event Action<int>? ScoreChanged;
+        public event Action<TimeManager>? TimeManagerChanged;
+        public event Action<bool>? PauseStateChanged;
+        public event Action<List<Enemy>>? EnemiesChanged;
+
+        public event Action? Jumped;
+        public event Action? DamageTaken;
+        public event Action? CheckpointActivated;
+        public event Action? PortalUsed;
+        public event Action? LevelCompletedEvent;
+
+        public event Action<Coin>? CoinCollectedEvent;
+        public event Action<Checkpoint>? CheckpointStateChanged;
+        public event Action<bool>? DoorStateChanged;
+        public event Action<FadingPlatform>? FadingPlatformChanged;
 
         private float penaltyCooldown = 0f;
         private float portalCooldown = 0f;
+        private List<SmartEnemy> smartEnemies = new List<SmartEnemy>();
+        private bool playerFellToVoid = false;
 
         public void StartNewGame()
         {
@@ -48,11 +72,12 @@ namespace TimeTax.Model
             CurrentLevelNumber = levelNumber;
             CurrentLevel = new Level();
             CurrentLevel.LoadLevel(levelNumber);
-            
+
             Time = new TimeManager(CurrentLevel.StartTime);
             TimeManagerChanged?.Invoke(Time);
-            
+
             Player = new Player { Position = CurrentLevel.PlayerSpawn };
+            PlayerCreated?.Invoke(Player);
 
             CollectedCoins = 0;
             LevelCompleted = false;
@@ -60,11 +85,69 @@ namespace TimeTax.Model
             IsPaused = false;
             penaltyCooldown = 0f;
             portalCooldown = 0f;
+            playerFellToVoid = false;
+
+            CollisionManager = new CollisionManager(800, 480);
+            RebuildQuadTree();
+
+            foreach (var fp in CurrentLevel.FadingPlatforms)
+            {
+                fp.VisibilityChanged += fpChanged =>
+                {
+                    RebuildQuadTree();
+                    FadingPlatformChanged?.Invoke(fpChanged);
+                };
+            }
+
+            Pathfinder = new AStarPathfinder(CurrentLevel);
+
+            if (levelNumber > 2)
+                ConvertToSmartEnemies();
 
             CoinsChanged?.Invoke(CollectedCoins);
             PlayerMoved?.Invoke(Player.Position);
-            LevelStarted?.Invoke(levelNumber);
+            LevelStarted?.Invoke(levelNumber, CurrentLevel);
+            EnemiesChanged?.Invoke(CurrentLevel.Enemies);
             ScoreChanged?.Invoke(Score);
+        }
+
+        private void RebuildQuadTree()
+        {
+            var staticObjects = new List<ICollidable>();
+            staticObjects.AddRange(CurrentLevel.Platforms);
+            staticObjects.AddRange(CurrentLevel.FadingPlatforms.Where(fp => fp.IsVisible));
+            staticObjects.AddRange(CurrentLevel.Spikes);
+            staticObjects.AddRange(CurrentLevel.Conveyors);
+            if (CurrentLevel.Door != null) staticObjects.Add(CurrentLevel.Door);
+
+            CollisionManager.RebuildQuadTree(staticObjects);
+            Pathfinder?.RebuildWalkableGrid();
+        }
+
+        private void ConvertToSmartEnemies()
+        {
+            smartEnemies.Clear();
+            var oldEnemies = new List<Enemy>(CurrentLevel.Enemies);
+            CurrentLevel.Enemies.Clear();
+
+            foreach (var old in oldEnemies)
+            {
+                var smart = new SmartEnemy
+                {
+                    Position = old.Position,
+                    SpawnPosition = old.SpawnPosition,
+                    PatrolStartX = old.PatrolStartX,
+                    PatrolEndX = old.PatrolEndX,
+                    PatrolSpeed = old.PatrolSpeed,
+                    Active = old.Active,
+                    MovingRight = old.MovingRight
+                };
+                smart.InitializeAI(Pathfinder, old.PatrolStartX, old.PatrolEndX, CurrentLevel);
+                smartEnemies.Add(smart);
+                CurrentLevel.Enemies.Add(smart);
+            }
+
+            EnemiesChanged?.Invoke(CurrentLevel.Enemies);
         }
 
         public void NextLevel()
@@ -91,7 +174,24 @@ namespace TimeTax.Model
             if (LevelCompleted || GameOver || GameWon || IsPaused) return;
 
             foreach (var enemy in CurrentLevel.Enemies)
-                enemy.Update(deltaTime);
+            {
+                if (enemy is SmartEnemy smart)
+                {
+                    bool playerAlive = !GameOver && !LevelCompleted;
+                    smart.UpdateAI(deltaTime, Player.Position, playerAlive);
+                    smart.Update(deltaTime);
+                }
+                else
+                {
+                    enemy.Update(deltaTime);
+                }
+
+               
+                if (enemy.Position.Y > 500 || enemy.Position.Y < -100)
+                {
+                    enemy.Respawn();
+                }
+            }
 
             foreach (var fp in CurrentLevel.FadingPlatforms)
                 fp.Update(deltaTime);
@@ -106,7 +206,7 @@ namespace TimeTax.Model
 
             Player.Update(deltaTime, Player.Gravity);
             ApplyConveyorEffect(deltaTime);
-            ResolvePlatformCollisions();
+            ResolvePlatformCollisionsOptimized();
             HandlePortals();
             HandleCoinCollection();
             HandleEnemyCollision();
@@ -114,19 +214,73 @@ namespace TimeTax.Model
             HandleCheckpoint();
             CheckExit();
 
-            if (Player.Position.X < 0) Player.Position = new Vector2(0, Player.Position.Y);
-            if (Player.Position.X + Player.Width > 800) Player.Position = new Vector2(800 - Player.Width, Player.Position.Y);
-            if (Player.Position.Y < -50) Player.Position = new Vector2(Player.Position.X, -50);
+            var pos = Player.Position;
+            var vel = Player.Velocity;
+            Physics.ClampToWorldBounds(Player, 800, 480, ref pos, ref vel);
+            Player.Position = pos;
+            Player.Velocity = vel;
 
-            if (Player.Position.Y > 480)
+            if (Player.Position.Y < -50)
+                Player.Position = new Vector2(Player.Position.X, -50);
+
+            if (Player.Position.Y + Player.Height >= 479f && !playerFellToVoid)
             {
+                playerFellToVoid = true;
                 ApplyPenalty(10f, true);
+                if (Player.Position.Y + Player.Height > 480)
+                    Player.Position = new Vector2(Player.Position.X, 480 - Player.Height);
             }
+
+            if (Player.Position.Y + Player.Height < 470f)
+                playerFellToVoid = false;
 
             if (penaltyCooldown > 0) penaltyCooldown -= deltaTime;
             if (portalCooldown > 0) portalCooldown -= deltaTime;
 
             PlayerMoved?.Invoke(Player.Position);
+        }
+
+        private void ResolvePlatformCollisionsOptimized()
+        {
+            var playerPotentials = CollisionManager.GetPotentialCollisions(Player);
+            Vector2 velocity = Player.Velocity;
+            bool grounded = false;
+            bool anyCollision = false;
+
+            foreach (var platform in playerPotentials)
+            {
+                if (platform is Platform || (platform is FadingPlatform fp && fp.IsVisible))
+                {
+                    if (Physics.ResolveFloorCollision(Player, ref velocity, platform, out Vector2 newPos))
+                    {
+                        Player.Position = newPos;
+                        velocity = new Vector2(velocity.X, 0);
+                        grounded = true;
+                        anyCollision = true;
+                        continue;
+                    }
+
+                    var result = Physics.ResolvePlatformCollision(Player, velocity, platform);
+                    if (result.HasValue)
+                    {
+                        Player.Position = result.Value.newPos;
+                        velocity = result.Value.newVel;
+                        if (result.Value.grounded)
+                            grounded = true;
+                        anyCollision = true;
+                    }
+                }
+            }
+
+            if (!anyCollision && Player.Position.Y + Player.Height >= 479f && velocity.Y >= 0)
+            {
+                Player.Position = new Vector2(Player.Position.X, 480 - Player.Height);
+                velocity = new Vector2(velocity.X, 0);
+                grounded = true;
+            }
+
+            Player.Velocity = velocity;
+            Player.IsGrounded = grounded;
         }
 
         private void ApplyConveyorEffect(float deltaTime)
@@ -145,57 +299,6 @@ namespace TimeTax.Model
             }
         }
 
-        private void ResolvePlatformCollisions()
-        {
-            foreach (var platform in CurrentLevel.Platforms)
-                ResolvePlatformCollision(platform);
-
-            foreach (var platform in CurrentLevel.FadingPlatforms)
-            {
-                if (platform.IsVisible)
-                    ResolvePlatformCollision(platform);
-            }
-        }
-
-        private void ResolvePlatformCollision(ICollidable platform)
-        {
-            var pBounds = platform.GetBounds();
-            var plBounds = Player.GetBounds();
-
-            if (plBounds.right > pBounds.left && plBounds.left < pBounds.right &&
-                plBounds.bottom > pBounds.top && plBounds.top < pBounds.bottom)
-            {
-                float overlapTop = plBounds.bottom - pBounds.top;
-                float overlapBottom = pBounds.bottom - plBounds.top;
-                float overlapLeft = plBounds.right - pBounds.left;
-                float overlapRight = pBounds.right - plBounds.left;
-
-                float minOverlap = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
-
-                if (minOverlap == overlapTop && Player.Velocity.Y > 0)
-                {
-                    Player.Position = new Vector2(Player.Position.X, pBounds.top - Player.Height);
-                    Player.Velocity = new Vector2(Player.Velocity.X, 0);
-                    Player.IsGrounded = true;
-                }
-                else if (minOverlap == overlapBottom && Player.Velocity.Y < 0)
-                {
-                    Player.Position = new Vector2(Player.Position.X, pBounds.bottom);
-                    Player.Velocity = new Vector2(Player.Velocity.X, 0);
-                }
-                else if (minOverlap == overlapLeft)
-                {
-                    Player.Position = new Vector2(pBounds.left - Player.Width, Player.Position.Y);
-                    Player.Velocity = new Vector2(0, Player.Velocity.Y);
-                }
-                else if (minOverlap == overlapRight)
-                {
-                    Player.Position = new Vector2(pBounds.right, Player.Position.Y);
-                    Player.Velocity = new Vector2(0, Player.Velocity.Y);
-                }
-            }
-        }
-
         private void HandlePortals()
         {
             if (portalCooldown > 0) return;
@@ -203,12 +306,12 @@ namespace TimeTax.Model
             foreach (var portal in CurrentLevel.Portals)
             {
                 if (!portal.Active) continue;
-                if (CheckCollision(Player, portal))
+                if (CollisionManager.CheckCollision(Player, portal))
                 {
                     Player.Position = portal.TargetPosition;
                     Player.Velocity = new Vector2(Player.Velocity.X * 0.5f, 0);
-                    portalCooldown = 1f;
-                    PlaySound?.Invoke("portal");
+                    portalCooldown = 1.5f; 
+                    PortalUsed?.Invoke();
                     break;
                 }
             }
@@ -219,18 +322,20 @@ namespace TimeTax.Model
             foreach (var coin in CurrentLevel.Coins)
             {
                 if (coin.Collected) continue;
-                if (CheckCollision(Player, coin))
+                if (CollisionManager.CheckCollision(Player, coin))
                 {
                     coin.Collected = true;
                     CollectedCoins++;
+
+                    Debug.WriteLine($"[GameModel] Coin collected! Total: {CollectedCoins}/{TotalCoinsRequired}");
+
                     CoinsChanged?.Invoke(CollectedCoins);
+                    CoinCollectedEvent?.Invoke(coin);
 
                     if (coin.Type == CoinType.Gold)
                         Time.AddSeconds(10);
                     else
                         Time.AddSeconds(5);
-
-                    PlaySound?.Invoke("coin");
                 }
             }
         }
@@ -242,7 +347,7 @@ namespace TimeTax.Model
             foreach (var enemy in CurrentLevel.Enemies)
             {
                 if (!enemy.Active) continue;
-                if (CheckCollision(Player, enemy))
+                if (CollisionManager.CheckCollision(Player, enemy))
                 {
                     ApplyPenalty(5f, false);
                     return;
@@ -256,7 +361,7 @@ namespace TimeTax.Model
 
             foreach (var spike in CurrentLevel.Spikes)
             {
-                if (CheckCollision(Player, spike))
+                if (CollisionManager.CheckCollision(Player, spike))
                 {
                     ApplyPenalty(8f, false);
                     return;
@@ -269,10 +374,11 @@ namespace TimeTax.Model
             foreach (var cp in CurrentLevel.Checkpoints)
             {
                 if (cp.Activated) continue;
-                if (CheckCollision(Player, cp))
+                if (CollisionManager.CheckCollision(Player, cp))
                 {
                     cp.Activated = true;
-                    PlaySound?.Invoke("checkpoint");
+                    CheckpointActivated?.Invoke();
+                    CheckpointStateChanged?.Invoke(cp);
                 }
             }
         }
@@ -282,11 +388,15 @@ namespace TimeTax.Model
             if (CurrentLevel.Door == null) return;
             if (CollectedCoins >= CurrentLevel.RequiredCoins)
             {
-                CurrentLevel.Door.IsOpen = true;
-                if (CheckCollision(Player, CurrentLevel.Door))
+                if (!CurrentLevel.Door.IsOpen)
+                {
+                    CurrentLevel.Door.IsOpen = true;
+                    DoorStateChanged?.Invoke(true);
+                }
+                if (CollisionManager.CheckCollision(Player, CurrentLevel.Door))
                 {
                     LevelCompleted = true;
-                    LevelFinished?.Invoke();
+                    LevelCompletedEvent?.Invoke();
                 }
             }
         }
@@ -294,7 +404,7 @@ namespace TimeTax.Model
         private void ApplyPenalty(float seconds, bool respawn)
         {
             Time.SubtractSeconds(seconds);
-            PlaySound?.Invoke("damage");
+            DamageTaken?.Invoke();
 
             if (respawn)
             {
@@ -302,21 +412,15 @@ namespace TimeTax.Model
                 foreach (var cp in CurrentLevel.Checkpoints)
                 {
                     if (cp.Activated)
-                        respawnPoint = cp.Position;
+                        respawnPoint = new Vector2(cp.Position.X, cp.Position.Y - Player.Height - 5);
                 }
                 Player.Position = respawnPoint;
                 Player.Velocity = Vector2.Zero;
                 Player.IsGrounded = false;
+                playerFellToVoid = false;
             }
 
             penaltyCooldown = 0.8f;
-        }
-
-        private bool CheckCollision(ICollidable a, ICollidable b)
-        {
-            var ab = a.GetBounds();
-            var bb = b.GetBounds();
-            return ab.left < bb.right && ab.right > bb.left && ab.top < bb.bottom && ab.bottom > bb.top;
         }
 
         public void MoveLeft()
@@ -342,12 +446,8 @@ namespace TimeTax.Model
             {
                 Player.Velocity = new Vector2(Player.Velocity.X, Player.JumpVelocity);
                 Player.IsGrounded = false;
+                Jumped?.Invoke();
             }
-        }
-
-        public void TogglePause()
-        {
-            IsPaused = !IsPaused;
         }
     }
 }

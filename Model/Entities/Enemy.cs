@@ -1,10 +1,7 @@
-using TimeTax.Model.Interfaces;
-
 namespace TimeTax.Model.Entities
 {
-    public class Enemy : ICollidable
+    public class Enemy : Entity
     {
-        public Vector2 Position { get; set; }
         public bool Active { get; set; } = true;
 
         public float PatrolStartX { get; set; }
@@ -12,19 +9,18 @@ namespace TimeTax.Model.Entities
         public float PatrolSpeed { get; set; } = 60f;
         public bool MovingRight { get; set; } = true;
 
-        public float Width => 24f;
-        public float Height => 24f;
+        public Vector2 SpawnPosition { get; set; }
 
-        public (float left, float right, float top, float bottom) GetBounds()
+        public override float Width { get; set; } = 24f;
+        public override float Height { get; set; } = 24f;
+
+        public virtual void Respawn()
         {
-            float left = Position.X;
-            float right = Position.X + Width;
-            float top = Position.Y;
-            float bottom = Position.Y + Height;
-            return (left, right, top, bottom);
+            Position = SpawnPosition;
+            MovingRight = true;
         }
 
-        public void Update(float deltaTime)
+        public virtual void Update(float deltaTime)
         {
             if (!Active) return;
 
@@ -46,6 +42,12 @@ namespace TimeTax.Model.Entities
                     Position = new Vector2(PatrolStartX, Position.Y);
                     MovingRight = true;
                 }
+            }
+
+            // Респавн при падении в бездну
+            if (Position.Y > 500 || Position.Y < -100)
+            {
+                Respawn();
             }
         }
     }

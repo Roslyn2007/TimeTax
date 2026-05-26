@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TimeTax")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c8bba76611f79644921c564954f31002c9a40ac4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+190763f1798cb44e02a9c21eaf2fbb69c2e18385")]
 [assembly: System.Reflection.AssemblyProductAttribute("TimeTax")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TimeTax")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

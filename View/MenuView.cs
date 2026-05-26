@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
+using System.Collections.Generic;
+using TimeTax.Model;
 
 namespace TimeTax.View
 {
@@ -9,61 +10,68 @@ namespace TimeTax.View
         private SpriteBatch spriteBatch;
         private Texture2D pixel;
         private SpriteFont font;
-        private GraphicsDevice graphicsDevice;
-
-        public event Action? StartGameRequested;
-        public event Action? QuitRequested;
+        private AudioManager? audio;
 
         private int selectedOption = 0;
-        private string[] options = { "START GAME", "QUIT" };
+        private bool isInOptions = false;
+        private IReadOnlyList<string> options;
 
         private readonly Color TitleColor = new Color(180, 30, 30);
         private readonly Color BgColor = new Color(20, 20, 40);
 
-        public MenuView(GraphicsDevice graphicsDevice, SpriteBatch spriteBatch, Texture2D sharedPixel, SpriteFont font)
+        public MenuView(GraphicsDevice graphicsDevice, SpriteBatch spriteBatch, Texture2D sharedPixel, SpriteFont font, MenuModel model, AudioManager? audio = null)
         {
-            this.graphicsDevice = graphicsDevice;
             this.spriteBatch = spriteBatch;
             this.pixel = sharedPixel;
             this.font = font;
-        }
+            this.audio = audio;
 
-        public void SelectNext() => selectedOption = (selectedOption + 1) % options.Length;
-        public void SelectPrevious() => selectedOption = (selectedOption - 1 + options.Length) % options.Length;
-
-        public void ActivateSelected()
-        {
-            if (selectedOption == 0)
-                StartGameRequested?.Invoke();
-            else if (selectedOption == 1)
-                QuitRequested?.Invoke();
+            options = model.Options;
+            model.SelectedOptionChanged += idx => selectedOption = idx;
+            model.OptionsStateChanged += state => isInOptions = state;
         }
 
         public void Draw(GameTime gameTime)
         {
             spriteBatch.Begin();
 
-            // Фон
             spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), BgColor);
 
-            // Заголовок
             spriteBatch.Draw(pixel, new Rectangle(150, 60, 500, 80), TitleColor);
-            spriteBatch.DrawString(font, "TIME TAX", new Vector2(320, 85), Color.White, 0f, Vector2.Zero, 2f, SpriteEffects.None, 0);
+            spriteBatch.DrawString(font, "TIME TAX", new Microsoft.Xna.Framework.Vector2(320, 85), Color.White, 0f, Microsoft.Xna.Framework.Vector2.Zero, 2f, SpriteEffects.None, 0);
 
-            // START
-            Color startColor = selectedOption == 0 ? Color.Yellow : Color.White;
-            spriteBatch.Draw(pixel, new Rectangle(250, 200, 300, 50), selectedOption == 0 ? Color.Green * 0.5f : Color.Gray * 0.3f);
-            spriteBatch.DrawString(font, "START GAME", new Vector2(330, 215), startColor);
-
-            // QUIT
-            Color quitColor = selectedOption == 1 ? Color.Yellow : Color.White;
-            spriteBatch.Draw(pixel, new Rectangle(250, 300, 300, 50), selectedOption == 1 ? Color.Red * 0.5f : Color.Gray * 0.3f);
-            spriteBatch.DrawString(font, "QUIT", new Vector2(360, 315), quitColor);
-
-            // Подсказка
-            spriteBatch.DrawString(font, "UP/DOWN to select, ENTER to confirm", new Vector2(250, 420), Color.Gray);
+            if (isInOptions)
+                DrawOptions();
+            else
+                DrawMainMenu();
 
             spriteBatch.End();
+        }
+
+        private void DrawMainMenu()
+        {
+            for (int i = 0; i < options.Count; i++)
+            {
+                int y = 200 + i * 80;
+                bool isSelected = selectedOption == i;
+                var (bgColor, textColor) = UIRenderer.GetButtonColors(i, isSelected);
+
+                spriteBatch.Draw(pixel, new Rectangle(250, y, 300, 50), bgColor);
+                spriteBatch.DrawString(font, options[i], new Microsoft.Xna.Framework.Vector2(330, y + 15), textColor);
+            }
+
+            spriteBatch.DrawString(font, "UP/DOWN to select, ENTER to confirm", new Microsoft.Xna.Framework.Vector2(250, 420), Color.Gray);
+        }
+
+        private void DrawOptions()
+        {
+            spriteBatch.DrawString(font, "OPTIONS", new Microsoft.Xna.Framework.Vector2(340, 150), Color.White, 0f, Microsoft.Xna.Framework.Vector2.Zero, 1.5f, SpriteEffects.None, 0);
+
+            string soundStatus = audio?.SoundEnabled == true ? "ON" : "OFF";
+            spriteBatch.Draw(pixel, new Rectangle(250, 250, 300, 50), new Color(60, 60, 80));
+            spriteBatch.DrawString(font, $"SOUND: {soundStatus}", new Microsoft.Xna.Framework.Vector2(330, 265), Color.Yellow);
+
+            spriteBatch.DrawString(font, "ENTER to toggle, ESC to back", new Microsoft.Xna.Framework.Vector2(260, 350), Color.Gray);
         }
     }
 }

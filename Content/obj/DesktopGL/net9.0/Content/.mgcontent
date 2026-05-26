@@ -5,8 +5,16 @@
   <Config />
   <SourceFiles>
     <File>C:/Users/Roslyn/OneDrive/ドキュメント/TimeTax/Content/Font.spritefont</File>
+    <File>C:/Users/Roslyn/OneDrive/ドキュメント/TimeTax/Content/bg.png</File>
+    <File>C:/Users/Roslyn/OneDrive/ドキュメント/TimeTax/Content/music/menu.mp3</File>
+    <File>C:/Users/Roslyn/OneDrive/ドキュメント/TimeTax/Content/music/background.mp3</File>
+    <File>C:/Users/Roslyn/OneDrive/ドキュメント/TimeTax/Content/music/levelcomplete.mp3</File>
   </SourceFiles>
   <DestFiles>
+    <File xsi:nil="true" />
+    <File xsi:nil="true" />
+    <File xsi:nil="true" />
+    <File xsi:nil="true" />
     <File xsi:nil="true" />
   </DestFiles>
 </SourceFileCollection>

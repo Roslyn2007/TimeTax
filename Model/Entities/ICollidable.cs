@@ -1,6 +1,6 @@
 using TimeTax.Model;
 
-namespace TimeTax.Model.Interfaces
+namespace TimeTax.Model.Entities
 {
     public interface ICollidable
     {

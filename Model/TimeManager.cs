@@ -9,15 +9,13 @@ namespace TimeTax.Model
 
         public event Action<float>? TimeChanged;
         public event Action<string>? ScreenEffectChanged;
-        public event Action? TimeRanOut;
 
-        private float previousTime = -1f;
+        private string previousEffect = "";
 
         public TimeManager(float startTime)
         {
             CurrentTime = startTime;
             StartTime = startTime;
-            previousTime = startTime;
         }
 
         public void Update(float deltaTime)
@@ -28,7 +26,6 @@ namespace TimeTax.Model
             CurrentTime -= deltaTime;
             if (CurrentTime < 0) CurrentTime = 0;
 
-            // ВСЕГДА вызываем событие — таймер должен обновляться каждый кадр
             TimeChanged?.Invoke(CurrentTime);
 
             string effect = CurrentTime switch
@@ -40,15 +37,11 @@ namespace TimeTax.Model
                 _ => "dead"
             };
 
-            ScreenEffectChanged?.Invoke(effect);
-
-            if (CurrentTime <= 0f && previousTime > 0f)
+            if (effect != previousEffect)
             {
-                CurrentTime = 0f;
-                TimeRanOut?.Invoke();
+                ScreenEffectChanged?.Invoke(effect);
+                previousEffect = effect;
             }
-
-            previousTime = CurrentTime;
         }
 
         public void AddSeconds(float seconds)
@@ -56,7 +49,6 @@ namespace TimeTax.Model
             CurrentTime += seconds;
             if (CurrentTime < 0) CurrentTime = 0;
             TimeChanged?.Invoke(CurrentTime);
-            previousTime = CurrentTime;
         }
 
         public void SubtractSeconds(float seconds)
@@ -64,7 +56,6 @@ namespace TimeTax.Model
             CurrentTime -= seconds;
             if (CurrentTime < 0) CurrentTime = 0;
             TimeChanged?.Invoke(CurrentTime);
-            previousTime = CurrentTime;
         }
     }
 }

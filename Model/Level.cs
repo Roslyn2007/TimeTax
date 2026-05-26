@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using TimeTax.Model.Entities;
-using TimeTax.Model.Interfaces;
 
 namespace TimeTax.Model
 {
@@ -15,89 +13,25 @@ namespace TimeTax.Model
         public List<Portal> Portals { get; } = new List<Portal>();
         public List<Conveyor> Conveyors { get; } = new List<Conveyor>();
         public List<FadingPlatform> FadingPlatforms { get; } = new List<FadingPlatform>();
-        public ExitDoor Door { get; set; }
+        public ExitDoor? Door { get; set; }
 
         public Vector2 PlayerSpawn { get; set; }
         public int RequiredCoins { get; set; } = 10;
         public float StartTime { get; set; } = 90f;
         public string Name { get; set; } = "Unknown";
 
-        // === НОВЫЙ КЛАСС: Исчезающая платформа ===
-        public class FadingPlatform : ICollidable
-        {
-            public Vector2 Position { get; set; }
-            public float Width { get; set; }
-            public float Height { get; set; }
-            
-            public bool IsVisible { get; set; } = true;
-            public float FadeTimer { get; set; } = 0f;
-            public float ReappearTimer { get; set; } = 0f;
-            
-            public const float FadeDuration = 2f;
-            public const float VisibleDuration = 5f;
-
-            public (float left, float right, float top, float bottom) GetBounds()
-            {
-                if (!IsVisible)
-                    return (0, 0, 0, 0);
-                    
-                float left = Position.X;
-                float right = Position.X + Width;
-                float top = Position.Y;
-                float bottom = Position.Y + Height;
-                return (left, right, top, bottom);
-            }
-
-            public void Update(float deltaTime)
-            {
-                if (IsVisible)
-                {
-                    FadeTimer += deltaTime;
-                    if (FadeTimer >= VisibleDuration)
-                    {
-                        IsVisible = false;
-                        FadeTimer = 0f;
-                    }
-                }
-                else
-                {
-                    ReappearTimer += deltaTime;
-                    if (ReappearTimer >= FadeDuration)
-                    {
-                        IsVisible = true;
-                        ReappearTimer = 0f;
-                    }
-                }
-            }
-        }
-
-        public class Platform : ICollidable
-        {
-            public Vector2 Position { get; set; }
-            public float Width { get; set; }
-            public float Height { get; set; }
-
-            public (float left, float right, float top, float bottom) GetBounds()
-            {
-                float left = Position.X;
-                float right = Position.X + Width;
-                float top = Position.Y;
-                float bottom = Position.Y + Height;
-                return (left, right, top, bottom);
-            }
-        }
-
         public void LoadLevel(int levelNumber)
         {
             Clear();
+
             switch (levelNumber)
             {
-                case 1: LoadLevel1(); break;
-                case 2: LoadLevel2(); break;
-                case 3: LoadLevel3(); break;
-                case 4: LoadLevel4(); break;
-                case 5: LoadLevel5(); break;
-                default: LoadLevel1(); break;
+                case 1: BuildLevel1(); break;
+                case 2: BuildLevel2(); break;
+                case 3: BuildLevel3(); break;
+                case 4: BuildLevel4(); break;
+                case 5: BuildLevel5(); break;
+                default: BuildLevel1(); break;
             }
         }
 
@@ -114,269 +48,540 @@ namespace TimeTax.Model
             Door = null;
         }
 
-        private void LoadLevel1()
+        private void BuildLevel1()
         {
-            Name = "Tax Office";
-            StartTime = 90f;
-            RequiredCoins = 7;
-            PlayerSpawn = new Vector2(50, 400);
+            Name = "First Steps";
+            StartTime = 45f;
+            RequiredCoins = 5;
 
-            Platforms.Add(new Platform { Position = new Vector2(0, 460), Width = 800, Height = 20 });
-            Platforms.Add(new Platform { Position = new Vector2(200, 380), Width = 120, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(500, 340), Width = 120, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(350, 280), Width = 100, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(0, 460), Width = 250, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(320, 440), Width = 150, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(550, 460), Width = 250, Height = 15 });
 
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(380, 380), 
-                Width = 80, 
-                Height = 15 
-            });
-
-            Coins.Add(new Coin { Position = new Vector2(230, 355), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(260, 355), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(290, 355), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(530, 315), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(560, 315), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(590, 315), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(100, 435), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(380, 255), Type = CoinType.Normal });
-
-            Enemies.Add(new Enemy { Position = new Vector2(400, 440), PatrolStartX = 350, PatrolEndX = 500, PatrolSpeed = 50f });
-            Spikes.Add(new Spike { Position = new Vector2(300, 445), Width = 40, Height = 10 });
-            Checkpoints.Add(new Checkpoint { Position = new Vector2(600, 430) });
-            Door = new ExitDoor { Position = new Vector2(750, 430), IsOpen = false };
-        }
-
-        private void LoadLevel2()
-        {
-            Name = "Clockwork";
-            StartTime = 80f;
-            RequiredCoins = 8;
-            PlayerSpawn = new Vector2(50, 400);
-
-            Platforms.Add(new Platform { Position = new Vector2(0, 460), Width = 200, Height = 20 });
-            Platforms.Add(new Platform { Position = new Vector2(300, 460), Width = 500, Height = 20 });
-            Platforms.Add(new Platform { Position = new Vector2(200, 360), Width = 100, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(150, 340), Width = 100, Height = 15 });
             Platforms.Add(new Platform { Position = new Vector2(400, 300), Width = 100, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(600, 240), Width = 100, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(100, 180), Width = 120, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(650, 340), Width = 100, Height = 15 });
 
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(320, 360), 
-                Width = 60, 
-                Height = 15 
+            Platforms.Add(new Platform { Position = new Vector2(280, 390), Width = 60, Height = 15 });
+
+            PlayerSpawn = new Vector2(30, 435);
+
+            Coins.Add(new Coin { Position = new Vector2(80, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(180, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(380, 420), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(480, 420), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(620, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(720, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(200, 320), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(450, 280), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(700, 320), Type = CoinType.Normal });
+
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(120, 436),
+                SpawnPosition = new Vector2(120, 436),
+                PatrolStartX = 20,
+                PatrolEndX = 220,
+                PatrolSpeed = 70f,
+                Active = true,
+                MovingRight = true
             });
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(520, 300), 
-                Width = 60, 
-                Height = 15 
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(400, 416),
+                SpawnPosition = new Vector2(400, 416),
+                PatrolStartX = 330,
+                PatrolEndX = 460,
+                PatrolSpeed = 60f,
+                Active = true,
+                MovingRight = false
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(450, 276),
+                SpawnPosition = new Vector2(450, 276),
+                PatrolStartX = 410,
+                PatrolEndX = 490,
+                PatrolSpeed = 50f,
+                Active = true,
+                MovingRight = true
             });
 
-            Coins.Add(new Coin { Position = new Vector2(240, 335), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(440, 275), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(640, 215), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(140, 155), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(350, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(450, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(550, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(650, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(50, 435), Type = CoinType.Normal });
+            Checkpoints.Add(new Checkpoint { Position = new Vector2(400, 408) });
 
-            Enemies.Add(new Enemy { Position = new Vector2(350, 440), PatrolStartX = 320, PatrolEndX = 480, PatrolSpeed = 70f });
-            Enemies.Add(new Enemy { Position = new Vector2(550, 440), PatrolStartX = 520, PatrolEndX = 680, PatrolSpeed = 70f });
-            Spikes.Add(new Spike { Position = new Vector2(280, 445), Width = 20, Height = 10 });
-            Spikes.Add(new Spike { Position = new Vector2(500, 445), Width = 20, Height = 10 });
-            Checkpoints.Add(new Checkpoint { Position = new Vector2(420, 270) });
-            Door = new ExitDoor { Position = new Vector2(720, 430), IsOpen = false };
+            Door = new ExitDoor { Position = new Vector2(620, 428), IsOpen = false };
         }
 
-        private void LoadLevel3()
+        private void BuildLevel2()
         {
-            Name = "Time Maze";
-            StartTime = 75f;
-            RequiredCoins = 10;
-            PlayerSpawn = new Vector2(50, 400);
+            Name = "Spike Valley";
+            StartTime = 40f;
+            RequiredCoins = 6;
 
-            Platforms.Add(new Platform { Position = new Vector2(0, 460), Width = 250, Height = 20 });
-            Platforms.Add(new Platform { Position = new Vector2(350, 460), Width = 450, Height = 20 });
-            Platforms.Add(new Platform { Position = new Vector2(50, 340), Width = 100, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(150, 270), Width = 100, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(80, 190), Width = 100, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(200, 140), Width = 120, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(450, 370), Width = 80, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(550, 310), Width = 80, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(650, 250), Width = 120, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(0, 460), Width = 200, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(280, 440), Width = 120, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(480, 420), Width = 120, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(680, 460), Width = 120, Height = 15 });
 
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(130, 340), 
-                Width = 50, 
-                Height = 15 
+            Platforms.Add(new Platform { Position = new Vector2(120, 360), Width = 90, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(350, 320), Width = 90, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(600, 360), Width = 90, Height = 15 });
+
+            Platforms.Add(new Platform { Position = new Vector2(250, 220), Width = 80, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(500, 220), Width = 80, Height = 15 });
+
+            Platforms.Add(new Platform { Position = new Vector2(200, 280), Width = 50, Height = 15 });
+
+            PlayerSpawn = new Vector2(30, 435);
+
+            Coins.Add(new Coin { Position = new Vector2(80, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(160, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(330, 420), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(420, 420), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(530, 400), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(720, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(160, 340), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(390, 300), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(640, 340), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(290, 200), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(540, 200), Type = CoinType.Normal });
+
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(100, 436),
+                SpawnPosition = new Vector2(100, 436),
+                PatrolStartX = 20,
+                PatrolEndX = 180,
+                PatrolSpeed = 75f,
+                Active = true,
+                MovingRight = true
             });
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(500, 370), 
-                Width = 50, 
-                Height = 15 
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(340, 416),
+                SpawnPosition = new Vector2(340, 416),
+                PatrolStartX = 290,
+                PatrolEndX = 390,
+                PatrolSpeed = 65f,
+                Active = true,
+                MovingRight = false
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(390, 296),
+                SpawnPosition = new Vector2(390, 296),
+                PatrolStartX = 360,
+                PatrolEndX = 430,
+                PatrolSpeed = 55f,
+                Active = true,
+                MovingRight = true
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(540, 196),
+                SpawnPosition = new Vector2(540, 196),
+                PatrolStartX = 510,
+                PatrolEndX = 570,
+                PatrolSpeed = 50f,
+                Active = true,
+                MovingRight = false
             });
 
-            Coins.Add(new Coin { Position = new Vector2(80, 315), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(100, 315), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(180, 245), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(200, 245), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(110, 165), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(130, 165), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(240, 115), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(270, 115), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(470, 345), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(570, 285), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(690, 225), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(720, 225), Type = CoinType.Normal });
+            Spikes.Add(new Spike { Position = new Vector2(210, 450), Width = 24, Height = 10 });
+            Spikes.Add(new Spike { Position = new Vector2(410, 430), Width = 24, Height = 10 });
+            Spikes.Add(new Spike { Position = new Vector2(220, 350), Width = 20, Height = 10 });
 
-            Enemies.Add(new Enemy { Position = new Vector2(400, 440), PatrolStartX = 380, PatrolEndX = 500, PatrolSpeed = 90f });
-            Enemies.Add(new Enemy { Position = new Vector2(670, 240), PatrolStartX = 660, PatrolEndX = 720, PatrolSpeed = 60f });
-            Spikes.Add(new Spike { Position = new Vector2(300, 445), Width = 30, Height = 10 });
-            Checkpoints.Add(new Checkpoint { Position = new Vector2(230, 120) });
-            Checkpoints.Add(new Checkpoint { Position = new Vector2(680, 220) });
-            Door = new ExitDoor { Position = new Vector2(750, 430), IsOpen = false };
+            Conveyors.Add(new Conveyor
+            {
+                Position = new Vector2(490, 410),
+                Width = 100,
+                Height = 10,
+                Direction = ConveyorDirection.Right,
+                Speed = 80f
+            });
+
+            Checkpoints.Add(new Checkpoint { Position = new Vector2(390, 408) });
+            Checkpoints.Add(new Checkpoint { Position = new Vector2(380, 288) });
+
+            Door = new ExitDoor { Position = new Vector2(740, 428), IsOpen = false };
         }
 
-        private void LoadLevel4()
+        private void BuildLevel3()
         {
-            Name = "Time Factory";
-            StartTime = 70f;
-            RequiredCoins = 12;
-            PlayerSpawn = new Vector2(50, 400);
+            Name = "Portal Maze";
+            StartTime = 35f;
+            RequiredCoins = 7;
 
-            Platforms.Add(new Platform { Position = new Vector2(0, 460), Width = 180, Height = 20 });
-            Platforms.Add(new Platform { Position = new Vector2(300, 460), Width = 500, Height = 20 });
-            Platforms.Add(new Platform { Position = new Vector2(180, 380), Width = 100, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(350, 320), Width = 100, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(550, 360), Width = 100, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(600, 220), Width = 120, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(50, 200), Width = 100, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(0, 460), Width = 180, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(250, 440), Width = 100, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(450, 420), Width = 100, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(650, 460), Width = 150, Height = 15 });
 
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(280, 380), 
-                Width = 70, 
-                Height = 15 
-            });
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(450, 320), 
-                Width = 70, 
-                Height = 15 
-            });
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(480, 220), 
-                Width = 70, 
-                Height = 15 
-            });
+            Platforms.Add(new Platform { Position = new Vector2(100, 360), Width = 80, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(350, 340), Width = 80, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(600, 360), Width = 80, Height = 15 });
 
-            Conveyors.Add(new Conveyor { 
-                Position = new Vector2(180, 460), 
-                Width = 120, 
-                Height = 10, 
-                Direction = ConveyorDirection.Right, 
-                Speed = 100f 
+            Platforms.Add(new Platform { Position = new Vector2(200, 220), Width = 70, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(500, 220), Width = 70, Height = 15 });
+
+            Platforms.Add(new Platform { Position = new Vector2(300, 280), Width = 50, Height = 15 });
+
+            FadingPlatforms.Add(new FadingPlatform { Position = new Vector2(400, 260), Width = 70, Height = 15 });
+
+            Portals.Add(new Portal
+            {
+                Position = new Vector2(120, 310),
+                TargetPosition = new Vector2(535, 196),
+                Active = true
             });
-            Conveyors.Add(new Conveyor { 
-                Position = new Vector2(500, 460), 
-                Width = 100, 
-                Height = 10, 
-                Direction = ConveyorDirection.Left, 
-                Speed = 80f 
+            Portals.Add(new Portal
+            {
+                Position = new Vector2(620, 290),
+                TargetPosition = new Vector2(235, 196),
+                Active = true
             });
 
-            Portals.Add(new Portal { 
-                Position = new Vector2(370, 280),
-                TargetPosition = new Vector2(630, 180)
+            PlayerSpawn = new Vector2(30, 435);
+
+            Coins.Add(new Coin { Position = new Vector2(60, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(140, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(290, 420), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(380, 420), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(490, 400), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(700, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(130, 340), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(380, 320), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(640, 340), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(230, 200), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(540, 200), Type = CoinType.Normal });
+
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(90, 436),
+                SpawnPosition = new Vector2(90, 436),
+                PatrolStartX = 20,
+                PatrolEndX = 160,
+                PatrolSpeed = 85f,
+                Active = true,
+                MovingRight = true
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(300, 416),
+                SpawnPosition = new Vector2(300, 416),
+                PatrolStartX = 260,
+                PatrolEndX = 340,
+                PatrolSpeed = 75f,
+                Active = true,
+                MovingRight = false
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(390, 316),
+                SpawnPosition = new Vector2(390, 316),
+                PatrolStartX = 360,
+                PatrolEndX = 420,
+                PatrolSpeed = 65f,
+                Active = true,
+                MovingRight = true
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(535, 196),
+                SpawnPosition = new Vector2(535, 196),
+                PatrolStartX = 510,
+                PatrolEndX = 560,
+                PatrolSpeed = 55f,
+                Active = true,
+                MovingRight = false
             });
 
-            Coins.Add(new Coin { Position = new Vector2(210, 355), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(230, 355), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(380, 295), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(400, 295), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(580, 335), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(600, 335), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(640, 195), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(660, 195), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(80, 175), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(100, 175), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(320, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(420, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(520, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(620, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(720, 435), Type = CoinType.Gold });
+            Spikes.Add(new Spike { Position = new Vector2(190, 450), Width = 22, Height = 10 });
+            Spikes.Add(new Spike { Position = new Vector2(360, 430), Width = 22, Height = 10 });
+            Spikes.Add(new Spike { Position = new Vector2(200, 350), Width = 18, Height = 10 });
 
-            Enemies.Add(new Enemy { Position = new Vector2(350, 440), PatrolStartX = 300, PatrolEndX = 450, PatrolSpeed = 80f });
-            Enemies.Add(new Enemy { Position = new Vector2(550, 440), PatrolStartX = 500, PatrolEndX = 650, PatrolSpeed = 80f });
-            Spikes.Add(new Spike { Position = new Vector2(180, 445), Width = 30, Height = 10 });
-            Spikes.Add(new Spike { Position = new Vector2(480, 445), Width = 30, Height = 10 });
-            Checkpoints.Add(new Checkpoint { Position = new Vector2(630, 190) });
-            Door = new ExitDoor { Position = new Vector2(750, 430), IsOpen = false };
+            Conveyors.Add(new Conveyor
+            {
+                Position = new Vector2(260, 430),
+                Width = 80,
+                Height = 10,
+                Direction = ConveyorDirection.Left,
+                Speed = 95f
+            });
+
+            Checkpoints.Add(new Checkpoint { Position = new Vector2(380, 408) });
+            Checkpoints.Add(new Checkpoint { Position = new Vector2(390, 308) });
+
+            Door = new ExitDoor { Position = new Vector2(740, 428), IsOpen = false };
         }
 
-        private void LoadLevel5()
+        private void BuildLevel4()
         {
-            Name = "Time Vault";
-            StartTime = 65f;
-            RequiredCoins = 15;
-            PlayerSpawn = new Vector2(50, 400);
+            Name = "Conveyor Rush";
+            StartTime = 30f;
+            RequiredCoins = 8;
 
-            Platforms.Add(new Platform { Position = new Vector2(0, 460), Width = 800, Height = 20 });
-            Platforms.Add(new Platform { Position = new Vector2(150, 360), Width = 120, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(350, 300), Width = 120, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(550, 240), Width = 120, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(200, 180), Width = 120, Height = 15 });
-            Platforms.Add(new Platform { Position = new Vector2(500, 130), Width = 180, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(0, 460), Width = 160, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(240, 440), Width = 100, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(440, 420), Width = 100, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(660, 460), Width = 140, Height = 15 });
 
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(280, 360), 
-                Width = 60, 
-                Height = 15 
+            Platforms.Add(new Platform { Position = new Vector2(100, 360), Width = 70, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(350, 340), Width = 70, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(600, 360), Width = 70, Height = 15 });
+
+            Platforms.Add(new Platform { Position = new Vector2(250, 220), Width = 60, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(500, 220), Width = 60, Height = 15 });
+
+            Platforms.Add(new Platform { Position = new Vector2(200, 280), Width = 45, Height = 15 });
+
+            FadingPlatforms.Add(new FadingPlatform { Position = new Vector2(350, 250), Width = 60, Height = 15 });
+            FadingPlatforms.Add(new FadingPlatform { Position = new Vector2(150, 150), Width = 50, Height = 15 });
+
+            Portals.Add(new Portal
+            {
+                Position = new Vector2(115, 300),
+                TargetPosition = new Vector2(530, 196),
+                Active = true
             });
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(480, 300), 
-                Width = 60, 
-                Height = 15 
-            });
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(380, 240), 
-                Width = 60, 
-                Height = 15 
-            });
-            FadingPlatforms.Add(new FadingPlatform { 
-                Position = new Vector2(680, 180), 
-                Width = 60, 
-                Height = 15 
+            Portals.Add(new Portal
+            {
+                Position = new Vector2(620, 280),
+                TargetPosition = new Vector2(275, 196),
+                Active = true
             });
 
-            Coins.Add(new Coin { Position = new Vector2(180, 335), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(200, 335), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(380, 275), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(400, 275), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(580, 215), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(600, 215), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(230, 155), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(250, 155), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(530, 105), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(550, 105), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(570, 105), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(100, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(150, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(300, 435), Type = CoinType.Gold });
-            Coins.Add(new Coin { Position = new Vector2(400, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(500, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(600, 435), Type = CoinType.Normal });
-            Coins.Add(new Coin { Position = new Vector2(700, 435), Type = CoinType.Gold });
+            PlayerSpawn = new Vector2(30, 435);
 
-            Enemies.Add(new Enemy { Position = new Vector2(300, 440), PatrolStartX = 200, PatrolEndX = 400, PatrolSpeed = 120f });
-            Enemies.Add(new Enemy { Position = new Vector2(500, 440), PatrolStartX = 450, PatrolEndX = 600, PatrolSpeed = 100f });
-            Enemies.Add(new Enemy { Position = new Vector2(400, 280), PatrolStartX = 350, PatrolEndX = 450, PatrolSpeed = 90f });
-            Spikes.Add(new Spike { Position = new Vector2(250, 445), Width = 40, Height = 10 });
-            Spikes.Add(new Spike { Position = new Vector2(450, 445), Width = 40, Height = 10 });
-            Spikes.Add(new Spike { Position = new Vector2(650, 445), Width = 40, Height = 10 });
-            Checkpoints.Add(new Checkpoint { Position = new Vector2(560, 210) });
-            Checkpoints.Add(new Checkpoint { Position = new Vector2(530, 100) });
-            Door = new ExitDoor { Position = new Vector2(720, 100), IsOpen = false };
+            Coins.Add(new Coin { Position = new Vector2(50, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(130, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(280, 420), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(380, 420), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(480, 400), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(700, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(120, 340), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(380, 320), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(640, 340), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(280, 200), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(530, 200), Type = CoinType.Normal });
+
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(80, 436),
+                SpawnPosition = new Vector2(80, 436),
+                PatrolStartX = 20,
+                PatrolEndX = 140,
+                PatrolSpeed = 95f,
+                Active = true,
+                MovingRight = true
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(290, 416),
+                SpawnPosition = new Vector2(290, 416),
+                PatrolStartX = 250,
+                PatrolEndX = 330,
+                PatrolSpeed = 85f,
+                Active = true,
+                MovingRight = false
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(390, 316),
+                SpawnPosition = new Vector2(390, 316),
+                PatrolStartX = 360,
+                PatrolEndX = 410,
+                PatrolSpeed = 75f,
+                Active = true,
+                MovingRight = true
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(530, 196),
+                SpawnPosition = new Vector2(530, 196),
+                PatrolStartX = 510,
+                PatrolEndX = 550,
+                PatrolSpeed = 65f,
+                Active = true,
+                MovingRight = false
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(280, 196),
+                SpawnPosition = new Vector2(280, 196),
+                PatrolStartX = 260,
+                PatrolEndX = 300,
+                PatrolSpeed = 65f,
+                Active = true,
+                MovingRight = true
+            });
+
+            Spikes.Add(new Spike { Position = new Vector2(170, 450), Width = 20, Height = 10 });
+            Spikes.Add(new Spike { Position = new Vector2(350, 430), Width = 20, Height = 10 });
+            Spikes.Add(new Spike { Position = new Vector2(190, 350), Width = 16, Height = 10 });
+
+            Conveyors.Add(new Conveyor
+            {
+                Position = new Vector2(250, 430),
+                Width = 80,
+                Height = 10,
+                Direction = ConveyorDirection.Right,
+                Speed = 105f
+            });
+            Conveyors.Add(new Conveyor
+            {
+                Position = new Vector2(440, 410),
+                Width = 80,
+                Height = 10,
+                Direction = ConveyorDirection.Left,
+                Speed = 105f
+            });
+
+            Checkpoints.Add(new Checkpoint { Position = new Vector2(370, 408) });
+            Checkpoints.Add(new Checkpoint { Position = new Vector2(385, 308) });
+
+            Door = new ExitDoor { Position = new Vector2(740, 428), IsOpen = false };
+        }
+
+        private void BuildLevel5()
+        {
+            Name = "Time Tax";
+            StartTime = 25f;
+            RequiredCoins = 9;
+
+            Platforms.Add(new Platform { Position = new Vector2(0, 460), Width = 140, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(220, 440), Width = 90, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(420, 420), Width = 90, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(640, 460), Width = 160, Height = 15 });
+
+            Platforms.Add(new Platform { Position = new Vector2(80, 360), Width = 65, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(320, 340), Width = 65, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(580, 360), Width = 65, Height = 15 });
+
+            Platforms.Add(new Platform { Position = new Vector2(200, 220), Width = 55, Height = 15 });
+            Platforms.Add(new Platform { Position = new Vector2(500, 220), Width = 55, Height = 15 });
+
+            Platforms.Add(new Platform { Position = new Vector2(350, 280), Width = 40, Height = 15 });
+
+            FadingPlatforms.Add(new FadingPlatform { Position = new Vector2(300, 250), Width = 55, Height = 15 });
+            FadingPlatforms.Add(new FadingPlatform { Position = new Vector2(180, 150), Width = 50, Height = 15 });
+            FadingPlatforms.Add(new FadingPlatform { Position = new Vector2(480, 130), Width = 50, Height = 15 });
+
+            Portals.Add(new Portal
+            {
+                Position = new Vector2(95, 290),
+                TargetPosition = new Vector2(525, 196),
+                Active = true
+            });
+            Portals.Add(new Portal
+            {
+                Position = new Vector2(610, 270),
+                TargetPosition = new Vector2(225, 196),
+                Active = true
+            });
+
+            PlayerSpawn = new Vector2(30, 435);
+
+            Coins.Add(new Coin { Position = new Vector2(40, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(110, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(260, 420), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(360, 420), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(460, 400), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(680, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(760, 440), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(100, 340), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(350, 320), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(610, 340), Type = CoinType.Gold });
+            Coins.Add(new Coin { Position = new Vector2(230, 200), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(530, 200), Type = CoinType.Normal });
+            Coins.Add(new Coin { Position = new Vector2(380, 110), Type = CoinType.Gold });
+
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(70, 436),
+                SpawnPosition = new Vector2(70, 436),
+                PatrolStartX = 10,
+                PatrolEndX = 120,
+                PatrolSpeed = 110f,
+                Active = true,
+                MovingRight = true
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(265, 416),
+                SpawnPosition = new Vector2(265, 416),
+                PatrolStartX = 230,
+                PatrolEndX = 300,
+                PatrolSpeed = 95f,
+                Active = true,
+                MovingRight = false
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(355, 316),
+                SpawnPosition = new Vector2(355, 316),
+                PatrolStartX = 330,
+                PatrolEndX = 375,
+                PatrolSpeed = 85f,
+                Active = true,
+                MovingRight = true
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(525, 196),
+                SpawnPosition = new Vector2(525, 196),
+                PatrolStartX = 505,
+                PatrolEndX = 545,
+                PatrolSpeed = 75f,
+                Active = true,
+                MovingRight = false
+            });
+            Enemies.Add(new Enemy
+            {
+                Position = new Vector2(225, 196),
+                SpawnPosition = new Vector2(225, 196),
+                PatrolStartX = 205,
+                PatrolEndX = 245,
+                PatrolSpeed = 75f,
+                Active = true,
+                MovingRight = true
+            });
+
+            Spikes.Add(new Spike { Position = new Vector2(150, 450), Width = 16, Height = 10 });
+            Spikes.Add(new Spike { Position = new Vector2(330, 430), Width = 16, Height = 10 });
+            Spikes.Add(new Spike { Position = new Vector2(170, 350), Width = 14, Height = 10 });
+            Spikes.Add(new Spike { Position = new Vector2(450, 350), Width = 14, Height = 10 });
+
+            Conveyors.Add(new Conveyor
+            {
+                Position = new Vector2(230, 430),
+                Width = 70,
+                Height = 10,
+                Direction = ConveyorDirection.Right,
+                Speed = 125f
+            });
+            Conveyors.Add(new Conveyor
+            {
+                Position = new Vector2(420, 410),
+                Width = 70,
+                Height = 10,
+                Direction = ConveyorDirection.Left,
+                Speed = 125f
+            });
+            Conveyors.Add(new Conveyor
+            {
+                Position = new Vector2(320, 330),
+                Width = 60,
+                Height = 10,
+                Direction = ConveyorDirection.Left,
+                Speed = 135f
+            });
+
+            Checkpoints.Add(new Checkpoint { Position = new Vector2(365, 408) });
+            Checkpoints.Add(new Checkpoint { Position = new Vector2(355, 308) });
+            Checkpoints.Add(new Checkpoint { Position = new Vector2(430, 188) });
+
+            Door = new ExitDoor { Position = new Vector2(740, 428), IsOpen = false };
         }
     }
 }
