@@ -186,7 +186,7 @@ namespace TimeTax.Model
                     enemy.Update(deltaTime);
                 }
 
-               
+                
                 if (enemy.Position.Y > 500 || enemy.Position.Y < -100)
                 {
                     enemy.Respawn();
