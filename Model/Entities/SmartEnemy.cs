@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using TimeTax.Model;
 using TimeTax.Model.Pathfinding;
 
@@ -28,9 +29,6 @@ namespace TimeTax.Model.Entities
         private bool wasPatrollingRight;
         private Level? level;
 
-        private Vector2 velocity = Vector2.Zero;
-        private bool isGrounded = false;
-        private const float Gravity = 600f;
         private const float JumpVelocity = -350f;
 
         private float stuckTimer = 0f;
@@ -55,8 +53,8 @@ namespace TimeTax.Model.Entities
             this.level = level;
             this.PatrolStartX = patrolStartX;
             this.PatrolEndX = patrolEndX;
-            this.patrolStart = new Vector2(patrolStartX, Position.Y);
-            this.patrolEnd = new Vector2(patrolEndX, Position.Y);
+            this.patrolStart = new Vector2(patrolStartX, SpawnPosition.Y);
+            this.patrolEnd = new Vector2(patrolEndX, SpawnPosition.Y);
             this.wasPatrollingRight = MovingRight;
             this.lastX = Position.X;
             this.aiTick = 0f;
@@ -65,26 +63,30 @@ namespace TimeTax.Model.Entities
         public override void Respawn()
         {
             base.Respawn();
-            velocity = Vector2.Zero;
             CurrentState = EnemyState.Patrol;
             currentPath = null;
             pathIndex = 0;
             chaseMemoryTimer = 0f;
             searchTimer = 0f;
             stuckTimer = 0f;
-            lastX = Position.X;
+            lastX = SpawnPosition.X;
             pathRecalcTimer = 0f;
             lastPathTarget = new Vector2(float.MaxValue, float.MaxValue);
-            patrolStart = new Vector2(PatrolStartX, Position.Y);
-            patrolEnd = new Vector2(PatrolEndX, Position.Y);
+            patrolStart = new Vector2(PatrolStartX, SpawnPosition.Y);
+            patrolEnd = new Vector2(PatrolEndX, SpawnPosition.Y);
+            wasPatrollingRight = true;
+            aiTick = 0f;
         }
 
         public override void Update(float deltaTime)
         {
             if (!Active) return;
 
-            if (Position.Y > 480 + 20 || Position.Y < -100)
+            bool fellOff = Position.Y + Height >= 480f || Position.Y > 500f || Position.Y < -100 || Position.X < -50 || Position.X > 850;
+
+            if (fellOff)
             {
+                Debug.WriteLine($"[SmartEnemy] Respawning at {Position.X:F1},{Position.Y:F1} -> {SpawnPosition.X:F1},{SpawnPosition.Y:F1}");
                 Respawn();
                 return;
             }
@@ -119,7 +121,7 @@ namespace TimeTax.Model.Entities
                 MoveAlongPath(deltaTime, CurrentState == EnemyState.Search ? PatrolSpeed * 0.7f : PatrolSpeed);
 
             Position += velocity * deltaTime;
-            ResolvePlatformCollisions();
+            base.ResolveCollisions();
 
             if (MathF.Abs(velocity.X) > 10f && isGrounded)
             {
@@ -353,27 +355,6 @@ namespace TimeTax.Model.Entities
             }
 
             return true;
-        }
-
-        private void ResolvePlatformCollisions()
-        {
-            if (level == null) return;
-
-            bool grounded = false;
-            Vector2 pos = Position;
-
-            foreach (var platform in level.Platforms)
-            {
-                if (Physics.ResolveFloorCollision(this, ref velocity, platform, out Vector2 newPos))
-                {
-                    pos = newPos;
-                    grounded = true;
-                }
-            }
-
-            Physics.ClampToWorldBounds(this, 800, 480, ref pos, ref velocity);
-            Position = pos;
-            isGrounded = grounded || MathF.Abs((Position.Y + Height) - 480) < 0.01f;
         }
 
         private void MoveAlongPath(float deltaTime, float speed)

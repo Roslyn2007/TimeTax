@@ -130,25 +130,47 @@ namespace TimeTax.View
 
             if (gameOver)
             {
-                spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), new Color(0, 0, 0, 200));
-                spriteBatch.DrawString(font, "GAME OVER", new Vector2(280, 180), Color.Red, 0f, Vector2.Zero, 2.5f, SpriteEffects.None, 0);
-                spriteBatch.DrawString(font, "Time ran out!", new Vector2(320, 240), Color.Orange);
-                spriteBatch.DrawString(font, "Press ENTER to restart", new Vector2(270, 290), Color.White);
+                DrawCenteredOverlay(new Color(0, 0, 0, 200));
+                DrawCenteredTitle("GAME OVER", 160, Color.Red, 2.5f);
+                DrawCenteredText("Time ran out!", 230, Color.Orange, 1.0f);
+                DrawCenteredText("Press ENTER to restart", 280, Color.White, 1.0f);
             }
             else if (levelComplete && !gameWon)
             {
-                spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), new Color(0, 0, 0, 180));
-                spriteBatch.DrawString(font, "LEVEL COMPLETE!", new Vector2(240, 180), Color.Gold, 0f, Vector2.Zero, 2f, SpriteEffects.None, 0);
-                spriteBatch.DrawString(font, $"Coins: {coins}/{required}", new Vector2(320, 240), Color.White);
-                spriteBatch.DrawString(font, "Press ENTER to continue", new Vector2(260, 290), Color.White);
+                DrawCenteredOverlay(new Color(0, 0, 0, 180));
+                DrawCenteredTitle("LEVEL COMPLETE!", 140, Color.Gold, 2.0f);
+                DrawCenteredText($"Level {levelNumber} cleared!", 210, Color.LightBlue, 1.0f);
+                DrawCenteredText($"Coins: {coins}/{required}", 250, Color.White, 1.0f);
+                DrawCenteredText($"Score: {score}", 290, Color.LightGreen, 1.0f);
+                DrawCenteredText("Press ENTER to continue", 340, Color.White, 1.0f);
             }
             else if (gameWon)
             {
-                spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), new Color(0, 0, 0, 200));
-                spriteBatch.DrawString(font, "YOU ESCAPED!", new Vector2(250, 160), Color.Gold, 0f, Vector2.Zero, 2.5f, SpriteEffects.None, 0);
-                spriteBatch.DrawString(font, $"Final Score: {score}", new Vector2(300, 230), Color.White, 0f, Vector2.Zero, 1.5f, SpriteEffects.None, 0);
-                spriteBatch.DrawString(font, "Press ENTER for menu", new Vector2(280, 290), Color.Gray);
+                DrawCenteredOverlay(new Color(0, 0, 0, 200));
+                DrawCenteredTitle("YOU ESCAPED!", 120, Color.Gold, 2.5f);
+                DrawCenteredText("All levels completed!", 200, Color.LightBlue, 1.0f);
+                DrawCenteredText($"Final Score: {score}", 250, Color.White, 1.5f);
+                DrawCenteredText("Press ENTER for menu", 320, Color.Gray, 1.0f);
             }
+        }
+
+        private void DrawCenteredOverlay(Color color)
+        {
+            spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), color);
+        }
+
+        private void DrawCenteredTitle(string text, int y, Color color, float scale)
+        {
+            Vector2 size = font.MeasureString(text) * scale;
+            float x = (800 - size.X) / 2f;
+            spriteBatch.DrawString(font, text, new Vector2(x, y), color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0);
+        }
+
+        private void DrawCenteredText(string text, int y, Color color, float scale)
+        {
+            Vector2 size = font.MeasureString(text) * scale;
+            float x = (800 - size.X) / 2f;
+            spriteBatch.DrawString(font, text, new Vector2(x, y), color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0);
         }
 
         private int GetMaxTime(int level)

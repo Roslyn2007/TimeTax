@@ -1,4 +1,4 @@
-namespace TimeTax.Model
+namespace TimeTax
 {
     public enum GameState
     {

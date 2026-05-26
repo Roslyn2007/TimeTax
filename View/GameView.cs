@@ -25,7 +25,7 @@ namespace TimeTax.View
         private int levelNumber = 1;
 
         private TimeManager? subscribedTimeManager;
-        private Texture2D background;
+        private Texture2D? background;
 
         public bool IsInPauseMenu => ui.IsInPauseMenu;
 
@@ -53,12 +53,12 @@ namespace TimeTax.View
 
         public GameView(GraphicsDevice graphicsDevice, SpriteBatch sharedSpriteBatch,
                         GameModel model, Texture2D sharedPixel, SpriteFont font,
-                        Texture2D backgroundTexture)
+                        Dictionary<string, Texture2D> backgrounds)
         {
             this.spriteBatch = sharedSpriteBatch;
             this.pixel = sharedPixel;
             this.font = font;
-            this.background = backgroundTexture;
+            this.background = backgrounds.ContainsKey("bg1") ? backgrounds["bg1"] : null;
             ui = new UIRenderer(sharedSpriteBatch, pixel, font);
 
             model.PlayerMoved += pos => playerPosition = new Microsoft.Xna.Framework.Vector2(pos.X, pos.Y);
@@ -75,6 +75,12 @@ namespace TimeTax.View
                     invisiblePlatformSet.Remove(fp);
                 else
                     invisiblePlatformSet.Add(fp);
+            };
+
+            model.BackgroundChanged += bgName =>
+            {
+                if (backgrounds.ContainsKey(bgName))
+                    background = backgrounds[bgName];
             };
 
             model.LevelStarted += (num, level) =>

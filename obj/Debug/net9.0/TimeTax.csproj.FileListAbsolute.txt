@@ -40,3 +40,8 @@ C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\bin\Debug\net9.0\Content\mus
 C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\bin\Debug\net9.0\Content\music\menu.xnb
 C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\bin\Debug\net9.0\Content\music\levelcomplete.ogg
 C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\bin\Debug\net9.0\Content\music\levelcomplete.xnb
+C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\bin\Debug\net9.0\Content\music\gameover.ogg
+C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\bin\Debug\net9.0\Content\music\gameover.xnb
+C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\bin\Debug\net9.0\Content\music\victory.ogg
+C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\bin\Debug\net9.0\Content\music\victory.xnb
+C:\Users\Roslyn\OneDrive\ドキュメント\TimeTax\bin\Debug\net9.0\Content\sfx\level_transition.xnb

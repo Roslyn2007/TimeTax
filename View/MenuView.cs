@@ -19,12 +19,15 @@ namespace TimeTax.View
         private readonly Color TitleColor = new Color(180, 30, 30);
         private readonly Color BgColor = new Color(20, 20, 40);
 
-        public MenuView(GraphicsDevice graphicsDevice, SpriteBatch spriteBatch, Texture2D sharedPixel, SpriteFont font, MenuModel model, AudioManager? audio = null)
+        private Texture2D? background;
+
+        public MenuView(GraphicsDevice graphicsDevice, SpriteBatch spriteBatch, Texture2D sharedPixel, SpriteFont font, MenuModel model, AudioManager? audio = null, Texture2D? background = null)
         {
             this.spriteBatch = spriteBatch;
             this.pixel = sharedPixel;
             this.font = font;
             this.audio = audio;
+            this.background = background;
 
             options = model.Options;
             model.SelectedOptionChanged += idx => selectedOption = idx;
@@ -35,7 +38,15 @@ namespace TimeTax.View
         {
             spriteBatch.Begin();
 
-            spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), BgColor);
+            if (background != null)
+            {
+                spriteBatch.Draw(background, new Rectangle(0, 0, 800, 480), Color.White);
+                spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), BgColor * 0.5f);
+            }
+            else
+            {
+                spriteBatch.Draw(pixel, new Rectangle(0, 0, 800, 480), BgColor);
+            }
 
             spriteBatch.Draw(pixel, new Rectangle(150, 60, 500, 80), TitleColor);
             spriteBatch.DrawString(font, "TIME TAX", new Microsoft.Xna.Framework.Vector2(320, 85), Color.White, 0f, Microsoft.Xna.Framework.Vector2.Zero, 2f, SpriteEffects.None, 0);

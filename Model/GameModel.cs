@@ -42,6 +42,7 @@ namespace TimeTax.Model
         public event Action<TimeManager>? TimeManagerChanged;
         public event Action<bool>? PauseStateChanged;
         public event Action<List<Enemy>>? EnemiesChanged;
+        public event Action? PlayGameMusic;
 
         public event Action? Jumped;
         public event Action? DamageTaken;
@@ -52,7 +53,10 @@ namespace TimeTax.Model
         public event Action<Coin>? CoinCollectedEvent;
         public event Action<Checkpoint>? CheckpointStateChanged;
         public event Action<bool>? DoorStateChanged;
+        public event Action? DoorOpened;
         public event Action<FadingPlatform>? FadingPlatformChanged;
+
+        public event Action<string>? BackgroundChanged;
 
         private float penaltyCooldown = 0f;
         private float portalCooldown = 0f;
@@ -104,11 +108,18 @@ namespace TimeTax.Model
             if (levelNumber > 2)
                 ConvertToSmartEnemies();
 
+            foreach (var enemy in CurrentLevel.Enemies)
+            {
+                enemy.SetPlatforms(CurrentLevel.Platforms, CurrentLevel.FadingPlatforms);
+            }
+
             CoinsChanged?.Invoke(CollectedCoins);
             PlayerMoved?.Invoke(Player.Position);
             LevelStarted?.Invoke(levelNumber, CurrentLevel);
+            BackgroundChanged?.Invoke(CurrentLevel.BackgroundFileName);
             EnemiesChanged?.Invoke(CurrentLevel.Enemies);
             ScoreChanged?.Invoke(Score);
+            PlayGameMusic?.Invoke();
         }
 
         private void RebuildQuadTree()
@@ -142,6 +153,7 @@ namespace TimeTax.Model
                     Active = old.Active,
                     MovingRight = old.MovingRight
                 };
+                smart.SetPlatforms(CurrentLevel.Platforms, CurrentLevel.FadingPlatforms);
                 smart.InitializeAI(Pathfinder, old.PatrolStartX, old.PatrolEndX, CurrentLevel);
                 smartEnemies.Add(smart);
                 CurrentLevel.Enemies.Add(smart);
@@ -184,12 +196,6 @@ namespace TimeTax.Model
                 else
                 {
                     enemy.Update(deltaTime);
-                }
-
-                
-                if (enemy.Position.Y > 500 || enemy.Position.Y < -100)
-                {
-                    enemy.Respawn();
                 }
             }
 
@@ -303,14 +309,26 @@ namespace TimeTax.Model
         {
             if (portalCooldown > 0) return;
 
-            foreach (var portal in CurrentLevel.Portals)
+            for (int i = 0; i < CurrentLevel.Portals.Count; i++)
             {
+                var portal = CurrentLevel.Portals[i];
                 if (!portal.Active) continue;
                 if (CollisionManager.CheckCollision(Player, portal))
                 {
-                    Player.Position = portal.TargetPosition;
+                    Vector2 dest = portal.TargetPosition;
+
+                    if (portal.PartnerIndex >= 0 && portal.PartnerIndex < CurrentLevel.Portals.Count)
+                    {
+                        var partner = CurrentLevel.Portals[portal.PartnerIndex];
+                        dest = new Vector2(
+                            partner.Position.X + partner.Width / 2 - Player.Width / 2,
+                            partner.Position.Y + partner.Height - Player.Height
+                        );
+                    }
+
+                    Player.Position = dest;
                     Player.Velocity = new Vector2(Player.Velocity.X * 0.5f, 0);
-                    portalCooldown = 1.5f; 
+                    portalCooldown = 1.5f;
                     PortalUsed?.Invoke();
                     break;
                 }
@@ -392,6 +410,7 @@ namespace TimeTax.Model
                 {
                     CurrentLevel.Door.IsOpen = true;
                     DoorStateChanged?.Invoke(true);
+                    DoorOpened?.Invoke();
                 }
                 if (CollisionManager.CheckCollision(Player, CurrentLevel.Door))
                 {

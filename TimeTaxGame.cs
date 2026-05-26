@@ -18,7 +18,8 @@ namespace TimeTax
         private MenuView menuView = null!;
         private MenuController menuController = null!;
         private Texture2D pixel = null!;
-        private Texture2D? backgroundTexture;
+        private Dictionary<string, Texture2D> backgroundTextures = new();
+        private Texture2D? menuBackground;
         private AudioManager? audio;
 
         private GameState currentState = GameState.Menu;
@@ -43,14 +44,31 @@ namespace TimeTax
             pixel = new Texture2D(GraphicsDevice, 1, 1);
             pixel.SetData(new[] { Color.White });
 
+            backgroundTextures = new Dictionary<string, Texture2D>();
+            for (int i = 1; i <= 5; i++)
+            {
+                string bgName = $"bg{i}";
+                string bgPath = System.IO.Path.Combine(Content.RootDirectory, $"backgrounds/{bgName}.png");
+                Texture2D? tex = null;
+                try
+                {
+                    if (System.IO.File.Exists(bgPath))
+                        using (var stream = System.IO.File.OpenRead(bgPath))
+                            tex = Texture2D.FromStream(GraphicsDevice, stream);
+                }
+                catch { }
+                if (tex != null)
+                    backgroundTextures[bgName] = tex;
+            }
+
             try
             {
-                string bgPath = System.IO.Path.Combine(Content.RootDirectory, "bg.png");
-                if (System.IO.File.Exists(bgPath))
-                    using (var stream = System.IO.File.OpenRead(bgPath))
-                        backgroundTexture = Texture2D.FromStream(GraphicsDevice, stream);
+                string menuBgPath = System.IO.Path.Combine(Content.RootDirectory, "backgrounds/menu_bg.png");
+                if (System.IO.File.Exists(menuBgPath))
+                    using (var stream = System.IO.File.OpenRead(menuBgPath))
+                        menuBackground = Texture2D.FromStream(GraphicsDevice, stream);
             }
-            catch { backgroundTexture = null; }
+            catch { menuBackground = null; }
 
             font = Content.Load<SpriteFont>("Font");
 
@@ -60,7 +78,7 @@ namespace TimeTax
 
             var menuModel = new MenuModel();
             menuController = new MenuController(menuModel);
-            menuView = new MenuView(GraphicsDevice, spriteBatch, pixel, font, menuModel, audio);
+            menuView = new MenuView(GraphicsDevice, spriteBatch, pixel, font, menuModel, audio, menuBackground);
 
             menuModel.StartGameRequested += () =>
             {
@@ -85,14 +103,15 @@ namespace TimeTax
                 gameModel.DamageTaken += () => audio.PlayHurt();
                 gameModel.CheckpointActivated += () => audio.PlayCheckpoint();
                 gameModel.PortalUsed += () => audio.PlayPortal();
-                gameModel.GameWonEvent += () => audio.PlayVictoryMusic();
-                gameModel.GameLost += () => audio.PlayGameOverMusic();
-                gameModel.LevelStarted += (_, _) => audio.PlayGameMusic();
-                gameModel.LevelCompletedEvent += () => audio.PlayLevelCompleteMusic();
+                gameModel.DoorOpened += () => audio.PlayDoorOpen();
+                gameModel.LevelCompletedEvent += () => audio.PlayLevelTransition();
+                gameModel.GameWonEvent += () => audio.PlayVictoryMusicOnce();
+                gameModel.GameLost += () => audio.PlayGameOverMusicOnce();
+                gameModel.PlayGameMusic += () => audio.PlayGameMusic();
             }
 
             gameController = new GameController(gameModel);
-            gameView = new GameView(GraphicsDevice, spriteBatch, gameModel, pixel, font, backgroundTexture);
+            gameView = new GameView(GraphicsDevice, spriteBatch, gameModel, pixel, font, backgroundTextures);
 
             gameModel.GameLost += () => currentState = GameState.GameOver;
             gameModel.GameWonEvent += () => currentState = GameState.Victory;
@@ -112,6 +131,8 @@ namespace TimeTax
             };
 
             gameModel.StartNewGame();
+            audio?.StopMusic();
+            audio?.PlayGameMusic();
         }
 
         protected override void Update(GameTime gameTime)
@@ -126,6 +147,7 @@ namespace TimeTax
                     break;
 
                 case GameState.Playing:
+                    audio?.PlayGameMusic();
                     HandlePlayingInput(deltaTime);
                     break;
 
